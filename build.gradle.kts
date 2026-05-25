@@ -52,6 +52,16 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+springBoot {
+    mainClass.set("ua.edu.kma.hub.HubApplication")
+}
+
+tasks.register<org.springframework.boot.gradle.tasks.run.BootRun>("bootRunAcousticGuard") {
+    group = "application"
+    description = "Runs Hub with com.acousticguard.hub entry point"
+    mainClass.set("com.acousticguard.hub.HubApplication")
+}
+
 tasks.withType<Test> {
     useJUnitPlatform()
 }
