@@ -1,5 +1,6 @@
 package com.acousticguard.hub.alert.dto;
 
+import com.acousticguard.hub.common.enums.ThreatType;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.time.Instant;
@@ -9,7 +10,7 @@ import java.util.UUID;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record AlertResponseDto(
         UUID id,
-        String threatType,
+        ThreatType threatType,
         Float confidence,
         String location,
         Instant detectedAt,
@@ -18,5 +19,4 @@ public record AlertResponseDto(
         Float latitude,
         Float longitude,
         Map<String, Object> metadata
-) {
-}
+) {}

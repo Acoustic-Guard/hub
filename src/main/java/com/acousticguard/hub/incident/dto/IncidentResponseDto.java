@@ -1,5 +1,7 @@
 package com.acousticguard.hub.incident.dto;
 
+import com.acousticguard.hub.common.enums.IncidentStatus;
+import com.acousticguard.hub.common.enums.ThreatType;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.time.Instant;
@@ -11,13 +13,12 @@ public record IncidentResponseDto(
         UUID id,
         Float latitude,
         Float longitude,
-        String type,
+        ThreatType type,
         Float intensity,
 
-        String status,
+        IncidentStatus status,
         String sensorId,
         Instant createdAt,
         Instant updatedAt,
         Map<String, Object> metadata
-) {
-}
+) {}

@@ -1,5 +1,6 @@
 package com.acousticguard.hub.telemetry.dto;
 
+import com.acousticguard.hub.common.enums.SystemStatus;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.time.Instant;
@@ -9,13 +10,12 @@ public record TelemetryResponseDto(
         Integer activeNodes,
         Integer avgLatencyMs,
         Integer noiseLevelDb,
-        String nodesStatus,
-        String latencyStatus,
-        String noiseStatus,
+        SystemStatus nodesStatus,
+        SystemStatus latencyStatus,
+        SystemStatus noiseStatus,
 
         Integer offlineNodes,
         Integer warningNodes,
         Float uptimePercent,
         Instant lastUpdatedAt
-) {
-}
+) {}
