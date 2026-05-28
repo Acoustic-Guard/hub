@@ -1,0 +1,10 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/acoustic
+    username: acoustic
+    password: secret
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml

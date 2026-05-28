@@ -1,4 +1,9 @@
 package com.acousticguard.hub.alert.dto;
 
-public record AlertStatusUpdateDto() {
+import jakarta.validation.constraints.NotBlank;
+
+public record AlertStatusUpdateDto(
+        @NotBlank(message = "Status cannot be blank")
+        String status
+) {
 }

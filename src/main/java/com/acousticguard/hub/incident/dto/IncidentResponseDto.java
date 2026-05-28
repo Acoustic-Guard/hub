@@ -1,4 +1,4 @@
-package com.acousticguard.hub.alert.dto;
+package com.acousticguard.hub.incident.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -7,16 +7,17 @@ import java.util.Map;
 import java.util.UUID;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record AlertResponseDto(
+public record IncidentResponseDto(
         UUID id,
-        String threatType,
-        Float confidence,
-        String location,
-        Instant detectedAt,
-
-        String sensorId,
         Float latitude,
         Float longitude,
+        String type,
+        Float intensity,
+
+        String status,
+        String sensorId,
+        Instant createdAt,
+        Instant updatedAt,
         Map<String, Object> metadata
 ) {
 }
