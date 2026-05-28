@@ -4,7 +4,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "ua.edu.kma"
+group = "ua.edu.kma.hub"
 version = "0.0.1-SNAPSHOT"
 description = "hub"
 
@@ -41,7 +41,7 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
 
     runtimeOnly("org.postgresql:postgresql")
-    implementation("org.flywaydb:flyway-database-postgresql")
+    implementation("org.liquibase:liquibase-core")
 
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
