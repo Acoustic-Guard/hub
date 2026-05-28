@@ -4,8 +4,7 @@ import com.acousticguard.hub.classifier.ClassifierGrpcClient;
 import com.acousticguard.hub.classifier.dto.ClassificationResult;
 import com.acousticguard.hub.common.enums.ThreatType;
 import com.acousticguard.hub.sensor.dto.AudioFrame;
-// import com.acousticguard.hub.alert.service.AlertService;
-// import com.acousticguard.hub.incident.service.IncidentService;
+import com.acousticguard.hub.telemetry.service.TelemetryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,14 +16,17 @@ import org.springframework.stereotype.Service;
 public class AudioFrameService {
 
     private final ClassifierGrpcClient classifierGrpcClient;
-    // private final AlertService alertService;
-    // private final IncidentService incidentService;
+    private final TelemetryService telemetryService;
 
     @Value("${acoustic.classifier.confidence-threshold:0.75}")
     private float confidenceThreshold;
 
     public void processFrame(AudioFrame frame) {
         log.debug("Processing frame from sensor: {}", frame.sensorId());
+
+        if (frame.avgDb() != null) {
+            telemetryService.updateNodeNoiseLevel(frame.sensorId(), frame.avgDb());
+        }
 
         ClassificationResult result = classifierGrpcClient.classify(frame);
 
@@ -33,17 +35,15 @@ public class AudioFrameService {
         }
 
         if (result.confidence() < confidenceThreshold) {
-            log.debug("Threat detected but confidence {} is below threshold", result.confidence());
+            log.debug("Threat {} detected but confidence {} is below threshold",
+                    result.threatType(), result.confidence());
             return;
         }
 
-        log.warn("Threat {} detected by sensor {} with confidence {}", 
-                 result.threatType(), frame.sensorId(), result.confidence());
+        log.warn("Threat {} confirmed by sensor {} with confidence {}",
+                result.threatType(), frame.sensorId(), result.confidence());
 
-        // 4. Створення Alert
-        // Alert alert = alertService.createAlert(frame, result);
-        
-        // 5. Агрегація в Incident (просторовий пошук)
-        // incidentService.aggregateOrUpdate(alert);
+        // TODO: alertService.createAlert(frame, result);
+        // TODO: incidentService.aggregateOrUpdate(alert);
     }
 }
