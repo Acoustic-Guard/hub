@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PreDestroy;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class ClassifierGrpcClient {
 
-    private final ManagedChannel channel;
+    private ManagedChannel channel;
 
     @Value("${acoustic.classifier.host:localhost}")
     private String classifierHost;

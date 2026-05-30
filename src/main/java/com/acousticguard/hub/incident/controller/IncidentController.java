@@ -71,7 +71,7 @@ public class IncidentController {
             @RequestBody String status) {
         try {
             var updatedIncident = incidentService.updateStatus(id, status);
-            return ResponseEntity.ok(incidentMapper::toDto);
+            return ResponseEntity.ok(incidentMapper.toDto(updatedIncident));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }

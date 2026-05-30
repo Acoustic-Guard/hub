@@ -38,7 +38,7 @@ public class AudioFrameService {
         log.debug("Processing frame from sensor: {}", frame.sensorId());
 
         if (frame.avgDb() != null) {
-            telemetryService.updateNodeNoiseLevel(frame.sensorId(), frame.avgDb());
+            telemetryService.updateNodeTelemetry(frame);
         }
 
         ClassificationResult result = classifierPort.classify(frame);

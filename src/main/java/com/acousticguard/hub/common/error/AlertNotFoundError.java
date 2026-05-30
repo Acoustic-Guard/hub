@@ -5,10 +5,9 @@ import java.util.UUID;
 /**
  * Domain error thrown when an alert is not found.
  */
-public record AlertNotFoundError(UUID alertId) implements DomainError {
+public class AlertNotFoundError extends DomainError {
 
-    @Override
-    public String getMessage() {
-        return "Alert not found with id: " + alertId;
+    public AlertNotFoundError(UUID alertId) {
+        super("Alert not found with id: " + alertId);
     }
 }

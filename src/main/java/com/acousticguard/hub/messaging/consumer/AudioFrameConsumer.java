@@ -38,7 +38,7 @@ public class AudioFrameConsumer {
             sensorMonitorService.updateHeartbeat(frame.sensorId());
             
             // Process the frame for threat detection via adapter
-            audioFrameAdapter.processFrame(frame);
+            audioFrameAdapter.deliver(frame);
         } catch (Exception e) {
             String sensorId = message.getMessageProperties().getHeader("x-sensor-id");
             log.error("Failed to process audio frame message. Sensor ID: {}", sensorId, e);

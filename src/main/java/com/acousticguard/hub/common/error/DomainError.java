@@ -1,15 +1,12 @@
 package com.acousticguard.hub.common.error;
 
 /**
- * Base sealed interface for domain errors.
- * All business logic errors should extend this interface.
+ * Base class for domain errors.
+ * All business logic errors should extend this class.
  */
-public sealed interface DomainError permits SensorNotFoundError, ConfidenceThresholdNotMetError, IncidentNotFoundError, AlertNotFoundError {
+public abstract class DomainError extends RuntimeException {
 
-    /**
-     * Returns the error message describing the domain error.
-     * 
-     * @return the error message
-     */
-    String getMessage();
+    public DomainError(String message) {
+        super(message);
+    }
 }

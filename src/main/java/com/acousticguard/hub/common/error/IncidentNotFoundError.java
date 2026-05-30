@@ -5,10 +5,9 @@ import java.util.UUID;
 /**
  * Domain error thrown when an incident is not found.
  */
-public record IncidentNotFoundError(UUID incidentId) implements DomainError {
+public class IncidentNotFoundError extends DomainError {
 
-    @Override
-    public String getMessage() {
-        return "Incident not found with id: " + incidentId;
+    public IncidentNotFoundError(UUID incidentId) {
+        super("Incident not found with id: " + incidentId);
     }
 }

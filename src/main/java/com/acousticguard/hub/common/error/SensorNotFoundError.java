@@ -3,10 +3,9 @@ package com.acousticguard.hub.common.error;
 /**
  * Domain error thrown when a sensor is not found.
  */
-public record SensorNotFoundError(String sensorId) implements DomainError {
+public class SensorNotFoundError extends DomainError {
 
-    @Override
-    public String getMessage() {
-        return "Sensor not found with id: " + sensorId;
+    public SensorNotFoundError(String sensorId) {
+        super("Sensor not found with id: " + sensorId);
     }
 }

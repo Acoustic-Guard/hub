@@ -23,4 +23,14 @@ public class AudioFrameAdapter implements AudioFramePort {
         log.debug("Delivering audio frame from sensor {}", frame.sensorId());
         audioFrameService.processFrame(frame);
     }
+
+    /**
+     * Convenience method for processing frames.
+     * Delegates to the deliver method.
+     * 
+     * @param frame the audio frame to process
+     */
+    public void processFrame(AudioFrame frame) {
+        deliver(frame);
+    }
 }
