@@ -1,0 +1,79 @@
+package com.acousticguard.hub.incident.controller;
+
+import com.acousticguard.hub.incident.dto.IncidentResponseDto;
+import com.acousticguard.hub.incident.mapper.IncidentMapper;
+import com.acousticguard.hub.incident.service.IncidentService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * REST controller for incident management.
+ * Provides endpoints for retrieving and updating incidents.
+ */
+@RestController
+@RequestMapping("/api/incidents")
+@RequiredArgsConstructor
+public class IncidentController {
+
+    private final IncidentService incidentService;
+    private final IncidentMapper incidentMapper;
+
+    /**
+     * Retrieves all active incidents within a bounding box.
+     * 
+     * @param minLat minimum latitude
+     * @param maxLat maximum latitude
+     * @param minLng minimum longitude
+     * @param maxLng maximum longitude
+     * @return list of active incidents within the bounding box
+     */
+    @GetMapping
+    public ResponseEntity<List<IncidentResponseDto>> getActiveIncidents(
+            @RequestParam float minLat,
+            @RequestParam float maxLat,
+            @RequestParam float minLng,
+            @RequestParam float maxLng) {
+        List<IncidentResponseDto> incidents = incidentService.findActiveWithinBbox(minLat, maxLat, minLng, maxLng)
+                .stream()
+                .map(incidentMapper::toDto)
+                .toList();
+        return ResponseEntity.ok(incidents);
+    }
+
+    /**
+     * Retrieves a specific incident by ID.
+     * 
+     * @param id the incident identifier
+     * @return the incident if found
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<IncidentResponseDto> getIncidentById(@PathVariable UUID id) {
+        return incidentService.findById(id)
+                .map(incidentMapper::toDto)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Updates the status of an incident.
+     * 
+     * @param id the incident identifier
+     * @param status the new status
+     * @return the updated incident
+     */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<IncidentResponseDto> updateIncidentStatus(
+            @PathVariable UUID id,
+            @RequestBody String status) {
+        try {
+            var updatedIncident = incidentService.updateStatus(id, status);
+            return ResponseEntity.ok(incidentMapper::toDto);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+}
