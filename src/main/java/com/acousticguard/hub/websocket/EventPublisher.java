@@ -12,45 +12,23 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class EventPublisher {
+public class EventPublisher implements EventPublisherPort {
 
     private final SimpMessagingTemplate messagingTemplate;
 
-    /**
-     * Broadcasts an alert to all subscribed clients.
-     * 
-     * @param alert the alert to broadcast
-     */
+    @Override
     public void publishAlert(Object alert) {
         messagingTemplate.convertAndSend("/topic/alerts", alert);
         log.debug("Published alert to /topic/alerts");
     }
 
-    /**
-     * Broadcasts an incident to all subscribed clients.
-     * 
-     * @param incident the incident to broadcast
-     */
+    @Override
     public void publishIncident(Object incident) {
         messagingTemplate.convertAndSend("/topic/incidents", incident);
         log.debug("Published incident to /topic/incidents");
     }
 
-    /**
-     * Broadcasts telemetry data to all subscribed clients.
-     * 
-     * @param telemetry the telemetry data to broadcast
-     */
-    public void publishTelemetry(Object telemetry) {
-        messagingTemplate.convertAndSend("/topic/telemetry", telemetry);
-        log.debug("Published telemetry to /topic/telemetry");
-    }
-
-    /**
-     * Broadcasts sensor status updates to all subscribed clients.
-     * 
-     * @param sensor the sensor status update
-     */
+    @Override
     public void publishSensorStatus(Object sensor) {
         messagingTemplate.convertAndSend("/topic/telemetry", sensor);
         log.debug("Published sensor status to /topic/telemetry");
