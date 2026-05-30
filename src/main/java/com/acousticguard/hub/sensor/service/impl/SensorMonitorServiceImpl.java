@@ -1,6 +1,7 @@
 package com.acousticguard.hub.sensor.service.impl;
 
 import com.acousticguard.hub.common.enums.SensorStatus;
+import com.acousticguard.hub.port.EventPublisherPort;
 import com.acousticguard.hub.sensor.model.Sensor;
 import com.acousticguard.hub.sensor.repository.SensorRepository;
 import com.acousticguard.hub.sensor.service.SensorMonitorService;
@@ -24,6 +25,7 @@ import java.util.List;
 public class SensorMonitorServiceImpl implements SensorMonitorService {
 
     private final SensorRepository sensorRepository;
+    private final EventPublisherPort eventPublisherPort;
 
     private static final long HEARTBEAT_TIMEOUT_SECONDS = 10;
 
@@ -53,6 +55,9 @@ public class SensorMonitorServiceImpl implements SensorMonitorService {
                 sensorRepository.save(sensor);
                 log.warn("Sensor {} marked as offline (last heartbeat: {})", 
                         sensor.getId(), sensor.getLastHeartbeat());
+                
+                // Publish sensor offline event
+                eventPublisherPort.publish(sensor);
             }
         });
         

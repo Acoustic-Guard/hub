@@ -5,6 +5,7 @@ import com.acousticguard.hub.alert.repository.AlertRepository;
 import com.acousticguard.hub.alert.service.AlertService;
 import com.acousticguard.hub.classifier.dto.ClassificationResult;
 import com.acousticguard.hub.common.enums.ThreatType;
+import com.acousticguard.hub.port.EventPublisherPort;
 import com.acousticguard.hub.sensor.dto.AudioFrame;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ import java.util.UUID;
 public class AlertServiceImpl implements AlertService {
 
     private final AlertRepository alertRepository;
+    private final EventPublisherPort eventPublisherPort;
     private static final float CONFIDENCE_THRESHOLD = 0.75f;
 
     @Override
@@ -69,6 +71,9 @@ public class AlertServiceImpl implements AlertService {
         Alert savedAlert = alertRepository.save(alert);
         log.info("Created alert {} for sensor {} with threat type {} and confidence {}", 
                 savedAlert.getId(), frame.sensorId(), result.threatType(), result.confidence());
+        
+        // Publish alert created event
+        eventPublisherPort.publish(savedAlert);
         
         return Optional.of(savedAlert);
     }

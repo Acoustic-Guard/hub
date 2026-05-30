@@ -5,6 +5,7 @@ import com.acousticguard.hub.common.enums.IncidentStatus;
 import com.acousticguard.hub.incident.model.Incident;
 import com.acousticguard.hub.incident.repository.IncidentRepository;
 import com.acousticguard.hub.incident.service.IncidentService;
+import com.acousticguard.hub.port.EventPublisherPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import java.util.UUID;
 public class IncidentServiceImpl implements IncidentService {
 
     private final IncidentRepository incidentRepository;
+    private final EventPublisherPort eventPublisherPort;
 
     private static final double SPATIAL_THRESHOLD_METERS = 500.0; // 500 meters
     private static final long TEMPORAL_THRESHOLD_SECONDS = 300; // 5 minutes
@@ -56,6 +58,9 @@ public class IncidentServiceImpl implements IncidentService {
         log.info("Created new incident {} for alert {} at location {},{}", 
                 saved.getId(), alert.getId(), alert.getLatitude(), alert.getLongitude());
         
+        // Publish incident created event
+        eventPublisherPort.publish(saved);
+        
         return saved;
     }
 
@@ -80,6 +85,9 @@ public class IncidentServiceImpl implements IncidentService {
         incident.setStatus(status);
         Incident updated = incidentRepository.save(incident);
         log.info("Updated incident {} status to {}", id, status);
+        
+        // Publish incident status updated event
+        eventPublisherPort.publish(updated);
         
         return updated;
     }
@@ -123,6 +131,9 @@ public class IncidentServiceImpl implements IncidentService {
         Incident updated = incidentRepository.save(incident);
         log.info("Updated incident {} with alert {}, new intensity: {}", 
                 updated.getId(), alert.getId(), newIntensity);
+        
+        // Publish incident updated event
+        eventPublisherPort.publish(updated);
         
         return updated;
     }
