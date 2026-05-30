@@ -13,4 +13,8 @@ CREATE TABLE alerts
     longitude   REAL,
     metadata    JSONB
 );
+
+-- Index for idempotency check (sensor_id + detected_at)
+CREATE INDEX idx_alerts_sensor_detected ON alerts(sensor_id, detected_at);
+
 -- rollback DROP TABLE alerts;

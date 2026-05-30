@@ -47,14 +47,8 @@ public class AlertServiceImpl implements AlertService {
         }
 
         // Enforce idempotency: check for existing alert with same sensorId and capturedAtMs
-        Optional<Alert> existingAlert = alertRepository.findAll().stream()
-                .filter(alert -> alert.getSensorId() != null)
-                .filter(alert -> alert.getSensorId().equals(frame.sensorId()))
-                .filter(alert -> {
-                    Instant detectedAt = alert.getDetectedAt();
-                    return detectedAt != null && detectedAt.toEpochMilli() == frame.capturedAtMs();
-                })
-                .findFirst();
+        Instant detectedAt = Instant.ofEpochMilli(frame.capturedAtMs());
+        Optional<Alert> existingAlert = alertRepository.findBySensorIdAndDetectedAt(frame.sensorId(), detectedAt);
 
         if (existingAlert.isPresent()) {
             log.debug("Duplicate alert detected for sensor {} at {}, skipping creation", 
