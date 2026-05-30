@@ -31,7 +31,7 @@ import java.util.UUID;
 public class AlertServiceImpl implements AlertService {
 
     private final AlertRepository alertRepository;
-    private final EventPublisher eventPublisher;
+    private final com.acousticguard.hub.websocket.EventPublisherPort eventPublisherPort;
 
     @Value("${acoustic.classifier.confidence-threshold:0.75}")
     private float confidenceThreshold;
@@ -73,7 +73,7 @@ public class AlertServiceImpl implements AlertService {
                 savedAlert.getId(), frame.sensorId(), result.threatType(), result.confidence());
         
         // Publish alert created event
-        eventPublisher.publishAlert(savedAlert);
+        eventPublisherPort.publishAlert(savedAlert);
         
         return Optional.of(savedAlert);
     }

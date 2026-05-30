@@ -27,7 +27,7 @@ public class SensorMonitorServiceImpl implements SensorMonitorService {
 
     private final SensorRepository sensorRepository;
     private final TelemetryService telemetryService;
-    private final EventPublisher eventPublisher;
+    private final com.acousticguard.hub.websocket.EventPublisherPort eventPublisherPort;
 
     @Value("${acoustic.sensor.heartbeat-timeout-seconds:10}")
     private long heartbeatTimeoutSeconds;
@@ -54,12 +54,12 @@ public class SensorMonitorServiceImpl implements SensorMonitorService {
                 sensorRepository.save(sensor);
                 offlineSensors.add(sensor);
                 log.warn("Sensor {} marked as offline", sensor.getId());
-                eventPublisher.publishSensorStatus(sensor);
+                eventPublisherPort.publishSensorStatus(sensor);
             } else if (currentStatus == SensorStatus.ONLINE && sensor.getStatus() != SensorStatus.ONLINE) {
                 sensor.setStatus(SensorStatus.ONLINE);
                 sensorRepository.save(sensor);
                 log.info("Sensor {} marked as online", sensor.getId());
-                eventPublisher.publishSensorStatus(sensor);
+                eventPublisherPort.publishSensorStatus(sensor);
             }
         }
         

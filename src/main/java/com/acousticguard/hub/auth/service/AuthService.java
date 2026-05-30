@@ -33,8 +33,15 @@ public class AuthService {
         );
 
         String token = jwtService.generateToken(request.username());
-        log.info("User {} authenticated successfully", request.username());
+        
+        // Get user role from authentication
+        String role = authentication.getAuthorities().stream()
+                .findFirst()
+                .map(auth -> auth.getAuthority().replace("ROLE_", ""))
+                .orElse("USER");
+        
+        log.info("User {} authenticated successfully with role {}", request.username(), role);
 
-        return new LoginResponse(token, request.username());
+        return new LoginResponse(token, request.username(), role);
     }
 }

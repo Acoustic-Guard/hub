@@ -3,6 +3,7 @@ package com.acousticguard.hub.sensor.controller;
 import com.acousticguard.hub.common.enums.SensorStatus;
 import com.acousticguard.hub.sensor.model.Sensor;
 import com.acousticguard.hub.sensor.service.SensorMonitorService;
+import com.acousticguard.hub.telemetry.dto.SensorNodeResponseDto;
 import com.acousticguard.hub.telemetry.service.TelemetryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
  * Provides endpoints for sensor telemetry and status.
  */
 @RestController
-@RequestMapping("/api/v1/telemetry")
+@RequestMapping("/api/v1/sensors")
 @RequiredArgsConstructor
 public class SensorController {
 
@@ -31,21 +31,23 @@ public class SensorController {
      * 
      * @return list of sensors with status
      */
-    @GetMapping("/nodes")
-    public ResponseEntity<List<Map<String, Object>>> getAllNodes() {
+    @GetMapping
+    public ResponseEntity<List<SensorNodeResponseDto>> getAllNodes() {
         List<Sensor> sensors = sensorMonitorService.getAllSensors();
         
-        List<Map<String, Object>> nodes = sensors.stream()
-                .map(sensor -> {
-                    Map<String, Object> nodeMap = new java.util.HashMap<>();
-                    nodeMap.put("id", sensor.getId());
-                    nodeMap.put("location", sensor.getLocation());
-                    nodeMap.put("latitude", sensor.getLatitude());
-                    nodeMap.put("longitude", sensor.getLongitude());
-                    nodeMap.put("status", sensor.getStatus());
-                    nodeMap.put("lastHeartbeat", sensor.getLastHeartbeat() != null ? sensor.getLastHeartbeat().toString() : "N/A");
-                    return nodeMap;
-                })
+        List<SensorNodeResponseDto> nodes = sensors.stream()
+                .map(sensor -> new SensorNodeResponseDto(
+                        sensor.getId(),
+                        sensor.getLocation(),
+                        sensor.getStatus(),
+                        null, // latencyMs
+                        null, // uptimePercent
+                        sensor.getLastHeartbeat(),
+                        sensor.getLatitude(),
+                        sensor.getLongitude(),
+                        null, // firmwareVersion
+                        null  // metadata
+                ))
                 .collect(Collectors.toList());
         
         return ResponseEntity.ok(nodes);
