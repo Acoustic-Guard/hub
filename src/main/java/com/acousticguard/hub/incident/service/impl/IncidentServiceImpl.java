@@ -84,6 +84,13 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<Incident> findActiveWithinBbox(float minLat, float maxLat, float minLng, float maxLng) {
+        // ST_MakeEnvelope accepts (minX, minY, maxX, maxY) -> (minLng, minLat, maxLng, maxLat)
+        return incidentRepository.findActiveWithinBbox(minLng, minLat, maxLng, maxLat);
+    }
+
+    @Override
     @Transactional
     public Incident updateStatus(UUID id, String status) {
         Incident incident = incidentRepository.findById(id)

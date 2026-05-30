@@ -3,6 +3,7 @@ package com.acousticguard.hub.incident.service;
 import com.acousticguard.hub.alert.model.Alert;
 import com.acousticguard.hub.incident.model.Incident;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,6 +29,17 @@ public interface IncidentService {
      * @return the incident if found
      */
     Optional<Incident> findById(UUID id);
+
+    /**
+     * Finds active incidents within a bounding box.
+     * 
+     * @param minLat minimum latitude
+     * @param maxLat maximum latitude
+     * @param minLng minimum longitude
+     * @param maxLng maximum longitude
+     * @return list of active incidents within the bounding box
+     */
+    List<Incident> findActiveWithinBbox(float minLat, float maxLat, float minLng, float maxLng);
 
     /**
      * Updates the status of an incident.

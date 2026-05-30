@@ -23,4 +23,12 @@ public interface IncidentRepository extends JpaRepository<Incident, UUID>, JpaSp
             @Param("threatType") String threatType,
             @Param("timeThreshold") Instant timeThreshold
     );
+
+    @Query(value = "SELECT * FROM incidents WHERE location_geo && ST_MakeEnvelope(:minLng, :minLat, :maxLng, :maxLat, 4326) AND status != 'RESOLVED'", nativeQuery = true)
+    List<Incident> findActiveWithinBbox(
+            @Param("minLng") double minLng,
+            @Param("minLat") double minLat,
+            @Param("maxLng") double maxLng,
+            @Param("maxLat") double maxLat
+    );
 }
