@@ -5,6 +5,9 @@ import com.acousticguard.hub.alert.repository.AlertRepository;
 import com.acousticguard.hub.alert.service.AlertService;
 import com.acousticguard.hub.classifier.dto.ClassificationResult;
 import com.acousticguard.hub.common.enums.ThreatType;
+import com.acousticguard.hub.common.error.AlertNotFoundError;
+import com.acousticguard.hub.common.error.ConfidenceThresholdNotMetError;
+import com.acousticguard.hub.common.error.DomainError;
 import com.acousticguard.hub.port.EventPublisherPort;
 import com.acousticguard.hub.sensor.dto.AudioFrame;
 import lombok.RequiredArgsConstructor;
@@ -35,8 +38,8 @@ public class AlertServiceImpl implements AlertService {
     public Optional<Alert> createAlert(AudioFrame frame, ClassificationResult result) {
         // Enforce confidence threshold
         if (result.confidence() < CONFIDENCE_THRESHOLD) {
-            log.debug("Confidence {} below threshold {}, skipping alert creation", 
-                    result.confidence(), CONFIDENCE_THRESHOLD);
+            DomainError error = new ConfidenceThresholdNotMetError(result.confidence(), CONFIDENCE_THRESHOLD);
+            log.debug("{}", error.getMessage());
             return Optional.empty();
         }
 
@@ -88,7 +91,7 @@ public class AlertServiceImpl implements AlertService {
     @Transactional
     public Alert updateStatus(UUID id, String status) {
         Alert alert = alertRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Alert not found with id: " + id));
+                .orElseThrow(() -> new AlertNotFoundError(id));
         
         // Status update logic would go here if Alert had a status field
         // For now, this is a placeholder for future enhancement

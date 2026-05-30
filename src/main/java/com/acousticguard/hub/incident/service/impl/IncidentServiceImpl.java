@@ -2,6 +2,8 @@ package com.acousticguard.hub.incident.service.impl;
 
 import com.acousticguard.hub.alert.model.Alert;
 import com.acousticguard.hub.common.enums.IncidentStatus;
+import com.acousticguard.hub.common.error.DomainError;
+import com.acousticguard.hub.common.error.IncidentNotFoundError;
 import com.acousticguard.hub.incident.model.Incident;
 import com.acousticguard.hub.incident.repository.IncidentRepository;
 import com.acousticguard.hub.incident.service.IncidentService;
@@ -80,7 +82,7 @@ public class IncidentServiceImpl implements IncidentService {
     @Transactional
     public Incident updateStatus(UUID id, String status) {
         Incident incident = incidentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Incident not found with id: " + id));
+                .orElseThrow(() -> new IncidentNotFoundError(id));
         
         incident.setStatus(status);
         Incident updated = incidentRepository.save(incident);

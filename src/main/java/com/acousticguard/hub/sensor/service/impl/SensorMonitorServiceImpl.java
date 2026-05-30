@@ -43,7 +43,7 @@ public class SensorMonitorServiceImpl implements SensorMonitorService {
     }
 
     @Override
-    @Scheduled(fixedRate = 5000) // Run every 5 seconds
+    @Scheduled(fixedRate = 5000)
     @Transactional
     public List<Sensor> checkOfflineSensors() {
         Instant threshold = Instant.now().minusSeconds(HEARTBEAT_TIMEOUT_SECONDS);
@@ -56,7 +56,6 @@ public class SensorMonitorServiceImpl implements SensorMonitorService {
                 log.warn("Sensor {} marked as offline (last heartbeat: {})", 
                         sensor.getId(), sensor.getLastHeartbeat());
                 
-                // Publish sensor offline event
                 eventPublisherPort.publish(sensor);
             }
         });
