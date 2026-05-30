@@ -4,7 +4,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "ua.edu.kma.hub"
+group = "com.acousticguard.hub"
 version = "0.0.1-SNAPSHOT"
 description = "hub"
 
@@ -56,7 +56,7 @@ dependencies {
 }
 
 springBoot {
-    mainClass.set("ua.edu.kma.hub.HubApplication")
+    mainClass.set("com.acousticguard.hub.HubApplication")
 }
 
 tasks.register<org.springframework.boot.gradle.tasks.run.BootRun>("bootRunAcousticGuard") {

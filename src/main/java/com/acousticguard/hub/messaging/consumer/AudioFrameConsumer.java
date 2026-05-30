@@ -1,5 +1,6 @@
 package com.acousticguard.hub.messaging.consumer;
 
+import com.acousticguard.hub.adapter.AudioFrameAdapter;
 import com.acousticguard.hub.sensor.dto.AudioFrame;
 import com.acousticguard.hub.sensor.service.SensorMonitorService;
 import lombok.RequiredArgsConstructor;
@@ -7,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Consumer for RabbitMQ messages from sensor nodes.
@@ -18,7 +19,7 @@ import tools.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 public class AudioFrameConsumer {
 
-    private final com.acousticguard.hub.sensor.service.AudioFrameService audioFrameService;
+    private final AudioFrameAdapter audioFrameAdapter;
     private final SensorMonitorService sensorMonitorService;
     private final ObjectMapper objectMapper;
 
@@ -36,8 +37,8 @@ public class AudioFrameConsumer {
             // Update heartbeat for the sensor
             sensorMonitorService.updateHeartbeat(frame.sensorId());
             
-            // Process the frame for threat detection
-            audioFrameService.processFrame(frame);
+            // Process the frame for threat detection via adapter
+            audioFrameAdapter.processFrame(frame);
         } catch (Exception e) {
             String sensorId = message.getMessageProperties().getHeader("x-sensor-id");
             log.error("Failed to process audio frame message. Sensor ID: {}", sensorId, e);

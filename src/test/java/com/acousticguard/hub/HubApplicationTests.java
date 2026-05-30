@@ -1,4 +1,4 @@
-package ua.edu.kma.hub;
+package com.acousticguard.hub;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -9,5 +9,4 @@ class HubApplicationTests {
     @Test
     void contextLoads() {
     }
-
 }

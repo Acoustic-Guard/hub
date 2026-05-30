@@ -1,5 +1,6 @@
 package com.acousticguard.hub.telemetry.service;
 
+import com.acousticguard.hub.sensor.dto.AudioFrame;
 import com.acousticguard.hub.telemetry.dto.TelemetryResponseDto;
 
 /**
@@ -9,12 +10,12 @@ import com.acousticguard.hub.telemetry.dto.TelemetryResponseDto;
 public interface TelemetryService {
 
     /**
-     * Updates the noise level for a specific sensor node.
+     * Updates telemetry data for a specific sensor node from an audio frame.
+     * Stores noise level, latency, latitude, and longitude via NodeState.
      * 
-     * @param sensorId the sensor identifier
-     * @param avgDb the average decibel level
+     * @param frame the audio frame containing telemetry data
      */
-    void updateNodeNoiseLevel(String sensorId, Float avgDb);
+    void updateNodeTelemetry(AudioFrame frame);
 
     /**
      * Retrieves current system telemetry including active nodes, noise levels, and system status.

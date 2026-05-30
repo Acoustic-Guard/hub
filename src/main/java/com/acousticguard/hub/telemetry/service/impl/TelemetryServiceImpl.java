@@ -1,7 +1,7 @@
 package com.acousticguard.hub.telemetry.service.impl;
 
 import com.acousticguard.hub.common.enums.SystemStatus;
-import com.acousticguard.hub.sensor.model.Sensor;
+import com.acousticguard.hub.sensor.dto.AudioFrame;
 import com.acousticguard.hub.sensor.repository.SensorRepository;
 import com.acousticguard.hub.telemetry.dto.TelemetryResponseDto;
 import com.acousticguard.hub.telemetry.service.TelemetryService;
@@ -15,6 +15,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
+ * Internal record to store node state including latency, coordinates, and noise level.
+ */
+record NodeState(float avgDb, float latency, float latitude, float longitude, Instant lastSeen) {}
+
+/**
  * Implementation of TelemetryService.
  * Handles telemetry collection and reporting using abstractions for data access.
  */
@@ -25,23 +30,26 @@ public class TelemetryServiceImpl implements TelemetryService {
 
     private final SensorRepository sensorRepository;
     
-    private final Map<String, Float> nodeNoiseLevels = new ConcurrentHashMap<>();
-    
-    private final Map<String, Instant> nodeLastSeen = new ConcurrentHashMap<>();
+    private final Map<String, NodeState> nodeStates = new ConcurrentHashMap<>();
 
     @Override
     @Transactional
-    public void updateNodeNoiseLevel(String sensorId, Float avgDb) {
-        nodeNoiseLevels.put(sensorId, avgDb);
-        nodeLastSeen.put(sensorId, Instant.now());
+    public void updateNodeTelemetry(AudioFrame frame) {
+        // Calculate latency as time difference between capture and now
+        long latencyMs = Instant.now().toEpochMilli() - frame.capturedAtMs();
         
-        // Update sensor last heartbeat
-        sensorRepository.findById(sensorId).ifPresent(sensor -> {
-            sensor.setLastHeartbeat(Instant.now());
-            sensorRepository.save(sensor);
-        });
+        NodeState state = new NodeState(
+                frame.avgDb(),
+                latencyMs,
+                frame.latitude(),
+                frame.longitude(),
+                Instant.now()
+        );
         
-        log.debug("Telemetry updated for sensor {}: {} dB", sensorId, avgDb);
+        nodeStates.put(frame.sensorId(), state);
+        
+        log.debug("Telemetry updated for sensor {}: {} dB, {}ms latency, {}, {}", 
+                frame.sensorId(), frame.avgDb(), latencyMs, frame.latitude(), frame.longitude());
     }
 
     @Override
@@ -49,8 +57,13 @@ public class TelemetryServiceImpl implements TelemetryService {
     public TelemetryResponseDto getSystemTelemetry() {
         int activeNodes = (int) sensorRepository.count();
         
-        double avgSystemNoise = nodeNoiseLevels.values().stream()
-                .mapToDouble(Float::doubleValue)
+        double avgSystemNoise = nodeStates.values().stream()
+                .mapToDouble(NodeState::avgDb)
+                .average()
+                .orElse(0.0);
+
+        double avgLatency = nodeStates.values().stream()
+                .mapToDouble(NodeState::latency)
                 .average()
                 .orElse(0.0);
 
@@ -63,7 +76,7 @@ public class TelemetryServiceImpl implements TelemetryService {
 
         return new TelemetryResponseDto(
                 activeNodes,
-                15, // TODO: Розрахунок latency з пінгів RabbitMQ
+                (int) Math.round(avgLatency),
                 (int) Math.round(avgSystemNoise),
                 nodesStatus,
                 SystemStatus.NORMAL,

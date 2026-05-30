@@ -1,6 +1,9 @@
 package com.acousticguard.hub.adapter;
 
+import com.acousticguard.hub.alert.model.Alert;
+import com.acousticguard.hub.incident.model.Incident;
 import com.acousticguard.hub.port.EventPublisherPort;
+import com.acousticguard.hub.sensor.model.Sensor;
 import com.acousticguard.hub.websocket.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,15 +22,22 @@ public class EventPublisherAdapter implements EventPublisherPort {
 
     @Override
     public void publish(Object event) {
-        log.debug("Publishing event to all clients: {}", event.getClass().getSimpleName());
-        // TODO: Implement actual publishing logic in EventPublisher
-        // eventPublisher.broadcast(event);
+        if (event instanceof Alert) {
+            eventPublisher.publishAlert(event);
+        } else if (event instanceof Incident) {
+            eventPublisher.publishIncident(event);
+        } else if (event instanceof Sensor) {
+            eventPublisher.publishSensorStatus(event);
+        } else {
+            eventPublisher.publishTelemetry(event);
+        }
     }
 
     @Override
     public void publishToClient(Object event, String clientId) {
         log.debug("Publishing event to client {}: {}", clientId, event.getClass().getSimpleName());
-        // TODO: Implement client-specific publishing logic in EventPublisher
-        // eventPublisher.sendToClient(event, clientId);
+        // STOMP doesn't support client-specific publishing in this simple implementation
+        // All events are broadcast to topic subscribers
+        publish(event);
     }
 }

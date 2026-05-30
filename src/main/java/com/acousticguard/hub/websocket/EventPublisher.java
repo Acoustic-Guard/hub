@@ -1,37 +1,58 @@
 package com.acousticguard.hub.websocket;
 
-import com.acousticguard.hub.websocket.handler.TelemetryWebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * Publisher for domain events to WebSocket clients.
- * Delegates to the WebSocket handler for actual broadcasting.
+ * Publisher for domain events to WebSocket clients via STOMP.
+ * Broadcasts events to topics /topic/alerts and /topic/telemetry.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class EventPublisher {
 
-    private final TelemetryWebSocketHandler webSocketHandler;
+    private final SimpMessagingTemplate messagingTemplate;
 
     /**
-     * Broadcasts an event to all connected WebSocket clients.
+     * Broadcasts an alert to all subscribed clients.
      * 
-     * @param event the event to broadcast
+     * @param alert the alert to broadcast
      */
-    public void broadcast(Object event) {
-        webSocketHandler.broadcast(event);
+    public void publishAlert(Object alert) {
+        messagingTemplate.convertAndSend("/topic/alerts", alert);
+        log.debug("Published alert to /topic/alerts");
     }
 
     /**
-     * Sends an event to a specific WebSocket client.
+     * Broadcasts an incident to all subscribed clients.
      * 
-     * @param event the event to send
-     * @param sessionId the target session ID
+     * @param incident the incident to broadcast
      */
-    public void sendToClient(Object event, String sessionId) {
-        webSocketHandler.sendToClient(event, sessionId);
+    public void publishIncident(Object incident) {
+        messagingTemplate.convertAndSend("/topic/alerts", incident);
+        log.debug("Published incident to /topic/alerts");
+    }
+
+    /**
+     * Broadcasts telemetry data to all subscribed clients.
+     * 
+     * @param telemetry the telemetry data to broadcast
+     */
+    public void publishTelemetry(Object telemetry) {
+        messagingTemplate.convertAndSend("/topic/telemetry", telemetry);
+        log.debug("Published telemetry to /topic/telemetry");
+    }
+
+    /**
+     * Broadcasts sensor status updates to all subscribed clients.
+     * 
+     * @param sensor the sensor status update
+     */
+    public void publishSensorStatus(Object sensor) {
+        messagingTemplate.convertAndSend("/topic/telemetry", sensor);
+        log.debug("Published sensor status to /topic/telemetry");
     }
 }
