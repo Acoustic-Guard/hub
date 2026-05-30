@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -21,28 +20,6 @@ public class IncidentController {
 
     private final IncidentService incidentService;
     private final IncidentMapper incidentMapper;
-
-    /**
-     * Retrieves all active incidents within a bounding box.
-     * 
-     * @param minLat minimum latitude
-     * @param maxLat maximum latitude
-     * @param minLng minimum longitude
-     * @param maxLng maximum longitude
-     * @return list of active incidents within the bounding box
-     */
-    @GetMapping
-    public ResponseEntity<List<IncidentResponseDto>> getActiveIncidents(
-            @RequestParam float minLat,
-            @RequestParam float maxLat,
-            @RequestParam float minLng,
-            @RequestParam float maxLng) {
-        List<IncidentResponseDto> incidents = incidentService.findActiveWithinBbox(minLat, maxLat, minLng, maxLng)
-                .stream()
-                .map(incidentMapper::toDto)
-                .toList();
-        return ResponseEntity.ok(incidents);
-    }
 
     /**
      * Retrieves a specific incident by ID.

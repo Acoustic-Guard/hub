@@ -10,6 +10,9 @@ import com.acousticguard.hub.incident.service.IncidentService;
 import com.acousticguard.hub.websocket.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +33,7 @@ public class IncidentServiceImpl implements IncidentService {
 
     private final IncidentRepository incidentRepository;
     private final EventPublisher eventPublisher;
+    private final GeometryFactory geometryFactory = new GeometryFactory();
 
     @Value("${acoustic.incident.spatial-threshold-meters:500}")
     private double spatialThresholdMeters;
@@ -49,10 +53,13 @@ public class IncidentServiceImpl implements IncidentService {
             return updateIncidentWithAlert(existing, alert);
         }
 
-        // Create new incident
+        // Create new incident with Point location
+        Point location = geometryFactory.createPoint(
+                new Coordinate(alert.getLocationGeo().getX(), alert.getLocationGeo().getY())
+        );
+
         Incident newIncident = Incident.builder()
-                .latitude(alert.getLatitude())
-                .longitude(alert.getLongitude())
+                .locationGeo(location)
                 .type(alert.getThreatType())
                 .intensity(alert.getConfidence())
                 .status(IncidentStatus.DETECTED.getValue())
@@ -62,7 +69,7 @@ public class IncidentServiceImpl implements IncidentService {
 
         Incident saved = incidentRepository.save(newIncident);
         log.info("Created new incident {} for alert {} at location {},{}", 
-                saved.getId(), alert.getId(), alert.getLatitude(), alert.getLongitude());
+                saved.getId(), alert.getId(), saved.getLocationGeo().getY(), saved.getLocationGeo().getX());
         
         // Publish incident created event
         eventPublisher.publishIncident(saved);
@@ -74,12 +81,6 @@ public class IncidentServiceImpl implements IncidentService {
     @Transactional(readOnly = true)
     public Optional<Incident> findById(UUID id) {
         return incidentRepository.findById(id);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<Incident> findActiveWithinBbox(float minLat, float maxLat, float minLng, float maxLng) {
-        return incidentRepository.findActiveWithinBbox(minLat, maxLat, minLng, maxLng);
     }
 
     @Override
@@ -99,22 +100,17 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     private List<Incident> findNearbyIncidents(Alert alert) {
-        // Define bounding box around alert location
-        float latDelta = (float) (spatialThresholdMeters / 111000.0); // Approximate meters to degrees
-        float lngDelta = (float) (spatialThresholdMeters / (111000.0 * Math.cos(Math.toRadians(alert.getLatitude()))));
+        // Calculate time threshold
+        Instant timeThreshold = Instant.now().minusSeconds(temporalThresholdSeconds);
         
-        float minLat = alert.getLatitude() - latDelta;
-        float maxLat = alert.getLatitude() + latDelta;
-        float minLng = alert.getLongitude() - lngDelta;
-        float maxLng = alert.getLongitude() + lngDelta;
-
-        List<Incident> incidents = incidentRepository.findActiveWithinBbox(minLat, maxLat, minLng, maxLng);
-        
-        // Filter by temporal threshold
-        Instant threshold = Instant.now().minusSeconds(temporalThresholdSeconds);
-        return incidents.stream()
-                .filter(inc -> inc.getUpdatedAt() != null && inc.getUpdatedAt().isAfter(threshold))
-                .toList();
+        // Use PostGIS spatial query to find nearby active incidents
+        return incidentRepository.findNearbyActiveIncidents(
+                alert.getLocationGeo().getY(),
+                alert.getLocationGeo().getX(),
+                spatialThresholdMeters,
+                alert.getThreatType(),
+                timeThreshold
+        );
     }
 
     private Incident updateIncidentWithAlert(Incident incident, Alert alert) {

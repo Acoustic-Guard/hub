@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.locationtech.jts.geom.Point;
 
 import java.time.Instant;
 import java.util.Map;
@@ -46,8 +47,8 @@ public class Alert {
     @Column(name = "sensor_id", length = 50)
     private String sensorId;
 
-    private Float latitude;
-    private Float longitude;
+    @Column(name = "location_geo", nullable = false)
+    private Point locationGeo;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")

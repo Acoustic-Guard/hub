@@ -12,6 +12,9 @@ import com.acousticguard.hub.sensor.dto.AudioFrame;
 import com.acousticguard.hub.websocket.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +35,7 @@ public class AlertServiceImpl implements AlertService {
 
     private final AlertRepository alertRepository;
     private final com.acousticguard.hub.websocket.EventPublisherPort eventPublisherPort;
+    private final GeometryFactory geometryFactory = new GeometryFactory();
 
     @Value("${acoustic.classifier.confidence-threshold:0.75}")
     private float confidenceThreshold;
@@ -56,6 +60,11 @@ public class AlertServiceImpl implements AlertService {
             return existingAlert;
         }
 
+        // Create Point location from lat/lon (X = longitude, Y = latitude)
+        Point location = geometryFactory.createPoint(
+                new Coordinate(frame.longitude(), frame.latitude())
+        );
+
         // Create new alert
         Alert alert = Alert.builder()
                 .threatType(result.threatType().getValue())
@@ -63,8 +72,7 @@ public class AlertServiceImpl implements AlertService {
                 .location(formatLocation(frame.latitude(), frame.longitude()))
                 .detectedAt(Instant.ofEpochMilli(frame.capturedAtMs()))
                 .sensorId(frame.sensorId())
-                .latitude(frame.latitude())
-                .longitude(frame.longitude())
+                .locationGeo(location)
                 .metadata(buildMetadata(frame, result))
                 .build();
 

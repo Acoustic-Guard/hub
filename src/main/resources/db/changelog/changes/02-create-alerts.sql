@@ -9,12 +9,14 @@ CREATE TABLE alerts
     location    VARCHAR(255)             NOT NULL,
     detected_at TIMESTAMP WITH TIME ZONE NOT NULL,
     sensor_id   VARCHAR(50),
-    latitude    REAL,
-    longitude   REAL,
+    location_geo GEOGRAPHY(Point, 4326) NOT NULL,
     metadata    JSONB
 );
 
 -- Index for idempotency check (sensor_id + detected_at)
 CREATE INDEX idx_alerts_sensor_detected ON alerts(sensor_id, detected_at);
+
+-- Spatial index for location queries
+CREATE INDEX idx_alerts_location_geo ON alerts USING GIST(location_geo);
 
 -- rollback DROP TABLE alerts;
