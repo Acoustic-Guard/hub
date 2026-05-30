@@ -2,7 +2,7 @@ package com.acousticguard.hub.sensor.service;
 
 import com.acousticguard.hub.alert.model.Alert;
 import com.acousticguard.hub.alert.service.AlertService;
-import com.acousticguard.hub.classifier.ClassifierGrpcClient;
+import com.acousticguard.hub.classifier.ClassifierClient;
 import com.acousticguard.hub.classifier.dto.ClassificationResult;
 import com.acousticguard.hub.common.enums.ThreatType;
 import com.acousticguard.hub.incident.service.IncidentService;
@@ -23,7 +23,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AudioFrameService {
 
-    private final ClassifierGrpcClient classifierGrpcClient;
+    private final ClassifierClient classifierClient;
     private final TelemetryService telemetryService;
     private final AlertService alertService;
     private final IncidentService incidentService;
@@ -41,7 +41,7 @@ public class AudioFrameService {
             telemetryService.updateNodeTelemetry(frame);
         }
 
-        ClassificationResult result = classifierGrpcClient.classify(frame);
+        ClassificationResult result = classifierClient.classify(frame);
 
         if (result.threatType() == ThreatType.BACKGROUND) {
             return;

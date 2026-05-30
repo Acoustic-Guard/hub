@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Component
-public class ClassifierGrpcClient {
+public class ClassifierGrpcClient implements ClassifierClient {
 
     private ManagedChannel channel;
 
