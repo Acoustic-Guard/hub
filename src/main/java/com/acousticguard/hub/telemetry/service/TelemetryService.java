@@ -1,5 +1,6 @@
 package com.acousticguard.hub.telemetry.service;
 
+import com.acousticguard.hub.common.enums.SensorStatus;
 import com.acousticguard.hub.sensor.dto.AudioFrame;
 import com.acousticguard.hub.telemetry.dto.TelemetryResponseDto;
 
@@ -23,4 +24,12 @@ public interface TelemetryService {
      * @return the current system telemetry
      */
     TelemetryResponseDto getSystemTelemetry();
+
+    /**
+     * Gets the status of a sensor based on in-memory heartbeat data.
+     * 
+     * @param sensorId the sensor identifier
+     * @return the sensor status
+     */
+    SensorStatus getSensorStatus(String sensorId);
 }

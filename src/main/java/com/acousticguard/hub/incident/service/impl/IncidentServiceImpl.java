@@ -7,7 +7,7 @@ import com.acousticguard.hub.common.error.IncidentNotFoundError;
 import com.acousticguard.hub.incident.model.Incident;
 import com.acousticguard.hub.incident.repository.IncidentRepository;
 import com.acousticguard.hub.incident.service.IncidentService;
-import com.acousticguard.hub.port.EventPublisherPort;
+import com.acousticguard.hub.websocket.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,7 +29,7 @@ import java.util.UUID;
 public class IncidentServiceImpl implements IncidentService {
 
     private final IncidentRepository incidentRepository;
-    private final EventPublisherPort eventPublisherPort;
+    private final EventPublisher eventPublisher;
 
     @Value("${acoustic.incident.spatial-threshold-meters:500}")
     private double spatialThresholdMeters;
@@ -65,7 +65,7 @@ public class IncidentServiceImpl implements IncidentService {
                 saved.getId(), alert.getId(), alert.getLatitude(), alert.getLongitude());
         
         // Publish incident created event
-        eventPublisherPort.publish(saved);
+        eventPublisher.publishIncident(saved);
         
         return saved;
     }
@@ -93,7 +93,7 @@ public class IncidentServiceImpl implements IncidentService {
         log.info("Updated incident {} status to {}", id, status);
         
         // Publish incident status updated event
-        eventPublisherPort.publish(updated);
+        eventPublisher.publishIncident(updated);
         
         return updated;
     }
@@ -139,7 +139,7 @@ public class IncidentServiceImpl implements IncidentService {
                 updated.getId(), alert.getId(), newIntensity);
         
         // Publish incident updated event
-        eventPublisherPort.publish(updated);
+        eventPublisher.publishIncident(updated);
         
         return updated;
     }

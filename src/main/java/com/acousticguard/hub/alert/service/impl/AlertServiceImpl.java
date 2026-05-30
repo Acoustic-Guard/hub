@@ -8,8 +8,8 @@ import com.acousticguard.hub.common.enums.ThreatType;
 import com.acousticguard.hub.common.error.AlertNotFoundError;
 import com.acousticguard.hub.common.error.ConfidenceThresholdNotMetError;
 import com.acousticguard.hub.common.error.DomainError;
-import com.acousticguard.hub.port.EventPublisherPort;
 import com.acousticguard.hub.sensor.dto.AudioFrame;
+import com.acousticguard.hub.websocket.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,7 +31,7 @@ import java.util.UUID;
 public class AlertServiceImpl implements AlertService {
 
     private final AlertRepository alertRepository;
-    private final EventPublisherPort eventPublisherPort;
+    private final EventPublisher eventPublisher;
 
     @Value("${acoustic.classifier.confidence-threshold:0.75}")
     private float confidenceThreshold;
@@ -79,7 +79,7 @@ public class AlertServiceImpl implements AlertService {
                 savedAlert.getId(), frame.sensorId(), result.threatType(), result.confidence());
         
         // Publish alert created event
-        eventPublisherPort.publish(savedAlert);
+        eventPublisher.publishAlert(savedAlert);
         
         return Optional.of(savedAlert);
     }

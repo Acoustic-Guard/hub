@@ -1,10 +1,11 @@
 package com.acousticguard.hub.sensor.service.impl;
 
 import com.acousticguard.hub.common.enums.SensorStatus;
-import com.acousticguard.hub.port.EventPublisherPort;
 import com.acousticguard.hub.sensor.model.Sensor;
 import com.acousticguard.hub.sensor.repository.SensorRepository;
 import com.acousticguard.hub.sensor.service.SensorMonitorService;
+import com.acousticguard.hub.telemetry.service.TelemetryService;
+import com.acousticguard.hub.websocket.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,13 +13,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.List;
 
 /**
  * Implementation of SensorMonitorService.
- * Handles sensor health monitoring with heartbeat timeout detection.
- * Marks sensors as offline if no heartbeat received within 10 seconds.
+ * Handles sensor health monitoring using in-memory telemetry data.
+ * Calculates sensor status on the fly to avoid DB bottlenecks.
  */
 @Slf4j
 @Service
@@ -26,41 +26,42 @@ import java.util.List;
 public class SensorMonitorServiceImpl implements SensorMonitorService {
 
     private final SensorRepository sensorRepository;
-    private final EventPublisherPort eventPublisherPort;
+    private final TelemetryService telemetryService;
+    private final EventPublisher eventPublisher;
 
     @Value("${acoustic.sensor.heartbeat-timeout-seconds:10}")
     private long heartbeatTimeoutSeconds;
 
     @Override
-    @Transactional
     public void updateHeartbeat(String sensorId) {
-        Sensor sensor = sensorRepository.findById(sensorId)
-                .orElseGet(() -> createSensor(sensorId));
-        
-        sensor.setLastHeartbeat(Instant.now());
-        sensor.setStatus(SensorStatus.ONLINE);
-        sensorRepository.save(sensor);
-        
-        log.debug("Heartbeat updated for sensor {}", sensorId);
+        // Heartbeat is now tracked in-memory via TelemetryService
+        // No DB write needed
+        log.debug("Heartbeat tracked in-memory for sensor {}", sensorId);
     }
 
     @Override
     @Scheduled(fixedRate = 5000)
     @Transactional
     public List<Sensor> checkOfflineSensors() {
-        Instant threshold = Instant.now().minusSeconds(heartbeatTimeoutSeconds);
-        List<Sensor> offlineSensors = sensorRepository.findByLastHeartbeatBefore(threshold);
+        List<Sensor> allSensors = sensorRepository.findAll();
+        List<Sensor> offlineSensors = new java.util.ArrayList<>();
         
-        offlineSensors.forEach(sensor -> {
-            if (sensor.getStatus() != SensorStatus.OFFLINE) {
+        for (Sensor sensor : allSensors) {
+            SensorStatus currentStatus = telemetryService.getSensorStatus(sensor.getId());
+            
+            if (currentStatus == SensorStatus.OFFLINE && sensor.getStatus() != SensorStatus.OFFLINE) {
                 sensor.setStatus(SensorStatus.OFFLINE);
                 sensorRepository.save(sensor);
-                log.warn("Sensor {} marked as offline (last heartbeat: {})", 
-                        sensor.getId(), sensor.getLastHeartbeat());
-                
-                eventPublisherPort.publish(sensor);
+                offlineSensors.add(sensor);
+                log.warn("Sensor {} marked as offline", sensor.getId());
+                eventPublisher.publishSensorStatus(sensor);
+            } else if (currentStatus == SensorStatus.ONLINE && sensor.getStatus() != SensorStatus.ONLINE) {
+                sensor.setStatus(SensorStatus.ONLINE);
+                sensorRepository.save(sensor);
+                log.info("Sensor {} marked as online", sensor.getId());
+                eventPublisher.publishSensorStatus(sensor);
             }
-        });
+        }
         
         return offlineSensors;
     }
@@ -69,16 +70,5 @@ public class SensorMonitorServiceImpl implements SensorMonitorService {
     @Transactional(readOnly = true)
     public List<Sensor> getAllSensors() {
         return sensorRepository.findAll();
-    }
-
-    private Sensor createSensor(String sensorId) {
-        return Sensor.builder()
-                .id(sensorId)
-                .location("Unknown")
-                .latitude(0.0f)
-                .longitude(0.0f)
-                .status(SensorStatus.OFFLINE)
-                .lastHeartbeat(Instant.now())
-                .build();
     }
 }

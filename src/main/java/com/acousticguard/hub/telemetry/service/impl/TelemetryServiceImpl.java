@@ -1,5 +1,6 @@
 package com.acousticguard.hub.telemetry.service.impl;
 
+import com.acousticguard.hub.common.enums.SensorStatus;
 import com.acousticguard.hub.common.enums.SystemStatus;
 import com.acousticguard.hub.sensor.dto.AudioFrame;
 import com.acousticguard.hub.sensor.repository.SensorRepository;
@@ -21,7 +22,8 @@ record NodeState(float avgDb, float latency, float latitude, float longitude, In
 
 /**
  * Implementation of TelemetryService.
- * Handles telemetry collection and reporting using abstractions for data access.
+ * Handles telemetry collection and reporting using in-memory tracking.
+ * Calculates sensor status on the fly to avoid DB bottlenecks.
  */
 @Slf4j
 @Service
@@ -33,7 +35,6 @@ public class TelemetryServiceImpl implements TelemetryService {
     private final Map<String, NodeState> nodeStates = new ConcurrentHashMap<>();
 
     @Override
-    @Transactional
     public void updateNodeTelemetry(AudioFrame frame) {
         // Calculate latency as time difference between capture and now
         long latencyMs = Instant.now().toEpochMilli() - frame.capturedAtMs();
@@ -70,9 +71,11 @@ public class TelemetryServiceImpl implements TelemetryService {
         SystemStatus noiseStatus = avgSystemNoise > 70.0 ? SystemStatus.WARNING : SystemStatus.NORMAL;
         SystemStatus nodesStatus = activeNodes > 0 ? SystemStatus.NORMAL : SystemStatus.CRITICAL;
 
-        // Calculate offline nodes
+        // Calculate offline nodes from in-memory data
         Instant threshold = Instant.now().minusSeconds(10);
-        long offlineNodes = sensorRepository.findByLastHeartbeatBefore(threshold).size();
+        long offlineNodes = nodeStates.values().stream()
+                .filter(state -> state.lastSeen().isBefore(threshold))
+                .count();
 
         return new TelemetryResponseDto(
                 activeNodes,
@@ -86,5 +89,21 @@ public class TelemetryServiceImpl implements TelemetryService {
                 99.9f, 
                 Instant.now()
         );
+    }
+
+    /**
+     * Gets the status of a sensor based on in-memory heartbeat data.
+     * 
+     * @param sensorId the sensor identifier
+     * @return the sensor status
+     */
+    public SensorStatus getSensorStatus(String sensorId) {
+        NodeState state = nodeStates.get(sensorId);
+        if (state == null) {
+            return SensorStatus.OFFLINE;
+        }
+        
+        Instant threshold = Instant.now().minusSeconds(10);
+        return state.lastSeen().isAfter(threshold) ? SensorStatus.ONLINE : SensorStatus.OFFLINE;
     }
 }

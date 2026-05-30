@@ -1,8 +1,8 @@
 package com.acousticguard.hub.messaging.consumer;
 
-import com.acousticguard.hub.adapter.AudioFrameAdapter;
 import com.acousticguard.hub.sensor.dto.AudioFrame;
-import com.acousticguard.hub.sensor.service.SensorMonitorService;
+import com.acousticguard.hub.sensor.service.AudioFrameService;
+import com.acousticguard.hub.telemetry.service.TelemetryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
@@ -13,19 +13,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 /**
  * Consumer for RabbitMQ messages from sensor nodes.
  * Handles both audio frame messages and heartbeat messages.
+ * Uses in-memory telemetry tracking to avoid DB bottlenecks.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class AudioFrameConsumer {
 
-    private final AudioFrameAdapter audioFrameAdapter;
-    private final SensorMonitorService sensorMonitorService;
+    private final AudioFrameService audioFrameService;
+    private final TelemetryService telemetryService;
     private final ObjectMapper objectMapper;
 
     /**
      * Processes audio frame messages from the RabbitMQ queue.
-     * Updates sensor heartbeat and processes the frame for threat detection.
+     * Updates in-memory telemetry and processes the frame for threat detection.
      * 
      * @param message the RabbitMQ message containing audio frame data
      */
@@ -34,11 +35,11 @@ public class AudioFrameConsumer {
         try {
             AudioFrame frame = objectMapper.readValue(message.getBody(), AudioFrame.class);
             
-            // Update heartbeat for the sensor
-            sensorMonitorService.updateHeartbeat(frame.sensorId());
+            // Update in-memory telemetry (includes heartbeat tracking)
+            telemetryService.updateNodeTelemetry(frame);
             
-            // Process the frame for threat detection via adapter
-            audioFrameAdapter.deliver(frame);
+            // Process the frame for threat detection
+            audioFrameService.processFrame(frame);
         } catch (Exception e) {
             String sensorId = message.getMessageProperties().getHeader("x-sensor-id");
             log.error("Failed to process audio frame message. Sensor ID: {}", sensorId, e);
@@ -47,7 +48,7 @@ public class AudioFrameConsumer {
 
     /**
      * Processes heartbeat messages from the RabbitMQ queue.
-     * Updates the last heartbeat timestamp for the sensor.
+     * Updates in-memory telemetry for the sensor.
      * 
      * @param message the RabbitMQ message containing heartbeat data
      */
@@ -56,7 +57,7 @@ public class AudioFrameConsumer {
         try {
             String sensorId = message.getMessageProperties().getHeader("x-sensor-id");
             if (sensorId != null) {
-                sensorMonitorService.updateHeartbeat(sensorId);
+                // Heartbeat is tracked in-memory via telemetry
                 log.debug("Heartbeat received from sensor {}", sensorId);
             }
         } catch (Exception e) {

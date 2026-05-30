@@ -32,8 +32,8 @@ public class EventPublisher {
      * @param incident the incident to broadcast
      */
     public void publishIncident(Object incident) {
-        messagingTemplate.convertAndSend("/topic/alerts", incident);
-        log.debug("Published incident to /topic/alerts");
+        messagingTemplate.convertAndSend("/topic/incidents", incident);
+        log.debug("Published incident to /topic/incidents");
     }
 
     /**
