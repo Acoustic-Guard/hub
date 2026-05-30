@@ -12,6 +12,7 @@ import com.acousticguard.hub.port.EventPublisherPort;
 import com.acousticguard.hub.sensor.dto.AudioFrame;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,14 +32,16 @@ public class AlertServiceImpl implements AlertService {
 
     private final AlertRepository alertRepository;
     private final EventPublisherPort eventPublisherPort;
-    private static final float CONFIDENCE_THRESHOLD = 0.75f;
+
+    @Value("${acoustic.classifier.confidence-threshold:0.75}")
+    private float confidenceThreshold;
 
     @Override
     @Transactional
     public Optional<Alert> createAlert(AudioFrame frame, ClassificationResult result) {
         // Enforce confidence threshold
-        if (result.confidence() < CONFIDENCE_THRESHOLD) {
-            DomainError error = new ConfidenceThresholdNotMetError(result.confidence(), CONFIDENCE_THRESHOLD);
+        if (result.confidence() < confidenceThreshold) {
+            DomainError error = new ConfidenceThresholdNotMetError(result.confidence(), confidenceThreshold);
             log.debug("{}", error.getMessage());
             return Optional.empty();
         }

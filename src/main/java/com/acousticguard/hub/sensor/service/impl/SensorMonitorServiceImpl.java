@@ -7,6 +7,7 @@ import com.acousticguard.hub.sensor.repository.SensorRepository;
 import com.acousticguard.hub.sensor.service.SensorMonitorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +28,8 @@ public class SensorMonitorServiceImpl implements SensorMonitorService {
     private final SensorRepository sensorRepository;
     private final EventPublisherPort eventPublisherPort;
 
-    private static final long HEARTBEAT_TIMEOUT_SECONDS = 10;
+    @Value("${acoustic.sensor.heartbeat-timeout-seconds:10}")
+    private long heartbeatTimeoutSeconds;
 
     @Override
     @Transactional
@@ -46,7 +48,7 @@ public class SensorMonitorServiceImpl implements SensorMonitorService {
     @Scheduled(fixedRate = 5000)
     @Transactional
     public List<Sensor> checkOfflineSensors() {
-        Instant threshold = Instant.now().minusSeconds(HEARTBEAT_TIMEOUT_SECONDS);
+        Instant threshold = Instant.now().minusSeconds(heartbeatTimeoutSeconds);
         List<Sensor> offlineSensors = sensorRepository.findByLastHeartbeatBefore(threshold);
         
         offlineSensors.forEach(sensor -> {

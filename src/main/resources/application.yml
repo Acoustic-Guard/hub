@@ -8,3 +8,14 @@ spring:
     password: secret
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
+
+acoustic:
+  classifier:
+    host: localhost
+    port: 50051
+    confidence-threshold: 0.75
+  sensor:
+    heartbeat-timeout-seconds: 10
+  incident:
+    spatial-threshold-meters: 500
+    temporal-threshold-seconds: 300

@@ -10,6 +10,7 @@ import com.acousticguard.hub.incident.service.IncidentService;
 import com.acousticguard.hub.port.EventPublisherPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,8 +31,11 @@ public class IncidentServiceImpl implements IncidentService {
     private final IncidentRepository incidentRepository;
     private final EventPublisherPort eventPublisherPort;
 
-    private static final double SPATIAL_THRESHOLD_METERS = 500.0; // 500 meters
-    private static final long TEMPORAL_THRESHOLD_SECONDS = 300; // 5 minutes
+    @Value("${acoustic.incident.spatial-threshold-meters:500}")
+    private double spatialThresholdMeters;
+
+    @Value("${acoustic.incident.temporal-threshold-seconds:300}")
+    private long temporalThresholdSeconds;
 
     @Override
     @Transactional
@@ -96,8 +100,8 @@ public class IncidentServiceImpl implements IncidentService {
 
     private List<Incident> findNearbyIncidents(Alert alert) {
         // Define bounding box around alert location
-        float latDelta = (float) (SPATIAL_THRESHOLD_METERS / 111000.0); // Approximate meters to degrees
-        float lngDelta = (float) (SPATIAL_THRESHOLD_METERS / (111000.0 * Math.cos(Math.toRadians(alert.getLatitude()))));
+        float latDelta = (float) (spatialThresholdMeters / 111000.0); // Approximate meters to degrees
+        float lngDelta = (float) (spatialThresholdMeters / (111000.0 * Math.cos(Math.toRadians(alert.getLatitude()))));
         
         float minLat = alert.getLatitude() - latDelta;
         float maxLat = alert.getLatitude() + latDelta;
@@ -107,7 +111,7 @@ public class IncidentServiceImpl implements IncidentService {
         List<Incident> incidents = incidentRepository.findActiveWithinBbox(minLat, maxLat, minLng, maxLng);
         
         // Filter by temporal threshold
-        Instant threshold = Instant.now().minusSeconds(TEMPORAL_THRESHOLD_SECONDS);
+        Instant threshold = Instant.now().minusSeconds(temporalThresholdSeconds);
         return incidents.stream()
                 .filter(inc -> inc.getUpdatedAt() != null && inc.getUpdatedAt().isAfter(threshold))
                 .toList();
