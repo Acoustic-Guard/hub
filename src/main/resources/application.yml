@@ -10,6 +10,11 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.yaml
   security:
     enabled: true
+  grpc:
+    client:
+      channels:
+        python-classifier:
+          address: "localhost:50051"
 
 jwt:
   secret: ${JWT_SECRET:your-secret-key-must-be-at-least-256-bits-long-for-hs256}
@@ -17,8 +22,6 @@ jwt:
 
 acoustic:
   classifier:
-    host: localhost
-    port: 50051
     confidence-threshold: 0.75
   sensor:
     heartbeat-timeout-seconds: 10

@@ -6,48 +6,20 @@ import com.acousticguard.hub.grpc.classifier.v1.AudioClassifierGrpc;
 import com.acousticguard.hub.grpc.classifier.v1.AudioFrameRequest;
 import com.acousticguard.hub.grpc.classifier.v1.ClassificationResponse;
 import com.acousticguard.hub.sensor.dto.AudioFrame;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
-import jakarta.annotation.PreDestroy;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class ClassifierGrpcClient implements ClassifierClient {
 
-    private ManagedChannel channel;
-
-    @Value("${acoustic.classifier.host:localhost}")
-    private String classifierHost;
-
-    @Value("${acoustic.classifier.port:50051}")
-    private int classifierPort;
-
-    public ClassifierGrpcClient() {
-        // Channel will be built after properties are injected
-        this.channel = null;
-    }
-
-    public void init() {
-        this.channel = ManagedChannelBuilder.forAddress(classifierHost, classifierPort)
-                .usePlaintext()
-                .build();
-        log.info("gRPC channel initialized for {}:{}", classifierHost, classifierPort);
-    }
+    private final AudioClassifierGrpc.AudioClassifierBlockingStub classifierStub;
 
     @Override
     public ClassificationResult classify(AudioFrame frame) {
         try {
-            if (channel == null) {
-                init();
-            }
-
-            AudioClassifierGrpc.AudioClassifierBlockingStub stub = AudioClassifierGrpc.newBlockingStub(channel);
-
             AudioFrameRequest request = AudioFrameRequest.newBuilder()
                     .setSensorId(frame.sensorId() != null ? frame.sensorId() : "unknown")
                     .setCapturedAtMs(frame.capturedAtMs())
@@ -59,7 +31,7 @@ public class ClassifierGrpcClient implements ClassifierClient {
                     .setAvgDb(frame.avgDb() != null ? frame.avgDb() : 0.0f)
                     .build();
 
-            ClassificationResponse response = stub.classify(request);
+            ClassificationResponse response = classifierStub.classify(request);
 
             ThreatType type = ThreatType.BACKGROUND;
             try {
@@ -73,19 +45,6 @@ public class ClassifierGrpcClient implements ClassifierClient {
         } catch (Exception e) {
             log.error("gRPC call to Python failed for sensor: {}", frame.sensorId(), e);
             return new ClassificationResult(ThreatType.BACKGROUND, 0.0f, "error");
-        }
-    }
-
-    @PreDestroy
-    public void shutdown() {
-        if (channel != null) {
-            try {
-                channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
-                log.info("gRPC channel shut down gracefully");
-            } catch (InterruptedException e) {
-                log.error("Interrupted while shutting down gRPC channel", e);
-                Thread.currentThread().interrupt();
-            }
         }
     }
 }
