@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.Map;
 
 /**
  * Service for JWT token generation and validation.
@@ -31,7 +30,7 @@ public class JwtService {
 
     /**
      * Generates a JWT token for the given username.
-     * 
+     *
      * @param username the username
      * @return the JWT token
      */
@@ -49,7 +48,7 @@ public class JwtService {
 
     /**
      * Extracts the username from a JWT token.
-     * 
+     *
      * @param token the JWT token
      * @return the username
      */
@@ -59,7 +58,7 @@ public class JwtService {
 
     /**
      * Validates a JWT token.
-     * 
+     *
      * @param token the JWT token
      * @return true if valid, false otherwise
      */

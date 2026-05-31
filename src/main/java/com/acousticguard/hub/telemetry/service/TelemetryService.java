@@ -13,21 +13,21 @@ public interface TelemetryService {
     /**
      * Updates telemetry data for a specific sensor node from an audio frame.
      * Stores noise level, latency, latitude, and longitude via NodeState.
-     * 
+     *
      * @param frame the audio frame containing telemetry data
      */
     void updateNodeTelemetry(AudioFrame frame);
 
     /**
      * Retrieves current system telemetry including active nodes, noise levels, and system status.
-     * 
+     *
      * @return the current system telemetry
      */
     TelemetryResponseDto getSystemTelemetry();
 
     /**
      * Gets the status of a sensor based on in-memory heartbeat data.
-     * 
+     *
      * @param sensorId the sensor identifier
      * @return the sensor status
      */

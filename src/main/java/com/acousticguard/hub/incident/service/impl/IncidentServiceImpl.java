@@ -2,7 +2,6 @@ package com.acousticguard.hub.incident.service.impl;
 
 import com.acousticguard.hub.alert.model.Alert;
 import com.acousticguard.hub.common.enums.IncidentStatus;
-import com.acousticguard.hub.common.error.DomainError;
 import com.acousticguard.hub.common.error.IncidentNotFoundError;
 import com.acousticguard.hub.incident.model.Incident;
 import com.acousticguard.hub.incident.repository.IncidentRepository;
@@ -68,12 +67,12 @@ public class IncidentServiceImpl implements IncidentService {
                 .build();
 
         Incident saved = incidentRepository.save(newIncident);
-        log.info("Created new incident {} for alert {} at location {},{}", 
+        log.info("Created new incident {} for alert {} at location {},{}",
                 saved.getId(), alert.getId(), saved.getLocationGeo().getY(), saved.getLocationGeo().getX());
-        
+
         // Publish incident created event
         eventPublisher.publishIncident(saved);
-        
+
         return saved;
     }
 
@@ -95,21 +94,21 @@ public class IncidentServiceImpl implements IncidentService {
     public Incident updateStatus(UUID id, String status) {
         Incident incident = incidentRepository.findById(id)
                 .orElseThrow(() -> new IncidentNotFoundError(id));
-        
+
         incident.setStatus(status);
         Incident updated = incidentRepository.save(incident);
         log.info("Updated incident {} status to {}", id, status);
-        
+
         // Publish incident status updated event
         eventPublisher.publishIncident(updated);
-        
+
         return updated;
     }
 
     private List<Incident> findNearbyIncidents(Alert alert) {
         // Calculate time threshold
         Instant timeThreshold = Instant.now().minusSeconds(temporalThresholdSeconds);
-        
+
         // Use PostGIS spatial query to find nearby active incidents
         return incidentRepository.findNearbyActiveIncidents(
                 alert.getLocationGeo().getY(),
@@ -124,26 +123,26 @@ public class IncidentServiceImpl implements IncidentService {
         // Update intensity to maximum of current and new alert
         float newIntensity = Math.max(incident.getIntensity(), alert.getConfidence());
         incident.setIntensity(newIntensity);
-        
+
         // Update status based on intensity
         if (newIntensity >= 0.9f) {
             incident.setStatus(IncidentStatus.CONFIRMED.getValue());
         } else if (newIntensity >= 0.8f) {
             incident.setStatus(IncidentStatus.INVESTIGATING.getValue());
         }
-        
+
         // Update metadata with alert information
         incident.getMetadata().put("lastAlertId", alert.getId().toString());
         incident.getMetadata().put("lastAlertAt", alert.getDetectedAt().toString());
         incident.getMetadata().put("alertCount", ((Integer) incident.getMetadata().getOrDefault("alertCount", 0)) + 1);
-        
+
         Incident updated = incidentRepository.save(incident);
-        log.info("Updated incident {} with alert {}, new intensity: {}", 
+        log.info("Updated incident {} with alert {}, new intensity: {}",
                 updated.getId(), alert.getId(), newIntensity);
-        
+
         // Publish incident updated event
         eventPublisher.publishIncident(updated);
-        
+
         return updated;
     }
 

@@ -13,7 +13,7 @@ public interface SensorMonitorService {
     /**
      * Updates the heartbeat timestamp for a sensor.
      * Marks the sensor as online when a heartbeat is received.
-     * 
+     *
      * @param sensorId the sensor identifier
      */
     void updateHeartbeat(String sensorId);
@@ -21,14 +21,14 @@ public interface SensorMonitorService {
     /**
      * Checks all sensors and marks those without recent heartbeats as offline.
      * This method is called periodically via scheduled execution.
-     * 
+     *
      * @return list of sensors that were marked offline
      */
     List<Sensor> checkOfflineSensors();
 
     /**
      * Retrieves all sensors with their current status.
-     * 
+     *
      * @return list of all sensors
      */
     List<Sensor> getAllSensors();

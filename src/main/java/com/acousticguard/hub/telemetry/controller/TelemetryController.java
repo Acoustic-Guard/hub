@@ -21,7 +21,7 @@ public class TelemetryController {
 
     /**
      * Gets current system telemetry.
-     * 
+     *
      * @return the current system telemetry
      */
     @GetMapping

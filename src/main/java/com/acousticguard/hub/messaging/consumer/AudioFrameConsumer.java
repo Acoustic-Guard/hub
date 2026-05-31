@@ -3,12 +3,12 @@ package com.acousticguard.hub.messaging.consumer;
 import com.acousticguard.hub.sensor.dto.AudioFrame;
 import com.acousticguard.hub.sensor.service.AudioFrameService;
 import com.acousticguard.hub.telemetry.service.TelemetryService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Consumer for RabbitMQ messages from sensor nodes.
@@ -27,17 +27,17 @@ public class AudioFrameConsumer {
     /**
      * Processes audio frame messages from the RabbitMQ queue.
      * Updates in-memory telemetry and processes the frame for threat detection.
-     * 
+     *
      * @param message the RabbitMQ message containing audio frame data
      */
     @RabbitListener(queues = "q.frames")
     public void receiveFrame(Message message) {
         try {
             AudioFrame frame = objectMapper.readValue(message.getBody(), AudioFrame.class);
-            
+
             // Update in-memory telemetry (includes heartbeat tracking)
             telemetryService.updateNodeTelemetry(frame);
-            
+
             // Process the frame for threat detection
             audioFrameService.processFrame(frame);
         } catch (Exception e) {
@@ -49,7 +49,7 @@ public class AudioFrameConsumer {
     /**
      * Processes heartbeat messages from the RabbitMQ queue.
      * Updates in-memory telemetry for the sensor.
-     * 
+     *
      * @param message the RabbitMQ message containing heartbeat data
      */
     @RabbitListener(queues = "q.heartbeats")

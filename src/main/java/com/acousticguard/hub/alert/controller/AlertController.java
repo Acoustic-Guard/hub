@@ -8,7 +8,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
@@ -26,7 +31,7 @@ public class AlertController {
 
     /**
      * Retrieves all alerts with pagination support.
-     * 
+     *
      * @param pageable pagination parameters
      * @return paginated list of alerts
      */
@@ -38,7 +43,7 @@ public class AlertController {
 
     /**
      * Retrieves a specific alert by ID.
-     * 
+     *
      * @param id the alert identifier
      * @return the alert if found
      */
@@ -52,8 +57,8 @@ public class AlertController {
 
     /**
      * Updates the status of an alert.
-     * 
-     * @param id the alert identifier
+     *
+     * @param id           the alert identifier
      * @param statusUpdate the status update request
      * @return the updated alert
      */

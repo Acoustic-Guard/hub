@@ -15,8 +15,8 @@ public interface AlertRepository extends JpaRepository<Alert, UUID>, JpaSpecific
     /**
      * Finds an alert by sensor ID and detection timestamp for idempotency.
      * Uses indexed query to avoid full table scans.
-     * 
-     * @param sensorId the sensor identifier
+     *
+     * @param sensorId   the sensor identifier
      * @param detectedAt the detection timestamp
      * @return the alert if found
      */

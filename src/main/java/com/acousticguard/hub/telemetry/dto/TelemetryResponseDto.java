@@ -18,4 +18,5 @@ public record TelemetryResponseDto(
         Integer warningNodes,
         Float uptimePercent,
         Instant lastUpdatedAt
-) {}
+) {
+}

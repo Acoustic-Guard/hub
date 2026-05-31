@@ -1,6 +1,5 @@
 package com.acousticguard.hub.sensor.controller;
 
-import com.acousticguard.hub.common.enums.SensorStatus;
 import com.acousticguard.hub.sensor.model.Sensor;
 import com.acousticguard.hub.sensor.service.SensorMonitorService;
 import com.acousticguard.hub.telemetry.dto.SensorNodeResponseDto;
@@ -28,13 +27,13 @@ public class SensorController {
 
     /**
      * Gets all sensor nodes with their status.
-     * 
+     *
      * @return list of sensors with status
      */
     @GetMapping
     public ResponseEntity<List<SensorNodeResponseDto>> getAllNodes() {
         List<Sensor> sensors = sensorMonitorService.getAllSensors();
-        
+
         List<SensorNodeResponseDto> nodes = sensors.stream()
                 .map(sensor -> new SensorNodeResponseDto(
                         sensor.getId(),
@@ -49,7 +48,7 @@ public class SensorController {
                         null  // metadata
                 ))
                 .collect(Collectors.toList());
-        
+
         return ResponseEntity.ok(nodes);
     }
 }

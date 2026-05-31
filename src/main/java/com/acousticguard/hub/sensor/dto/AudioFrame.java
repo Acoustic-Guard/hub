@@ -11,4 +11,5 @@ public record AudioFrame(
         float sampleRateHz,
         Float peakDb,
         Float avgDb
-) {}
+) {
+}

@@ -5,7 +5,6 @@ import com.acousticguard.hub.sensor.model.Sensor;
 import com.acousticguard.hub.sensor.repository.SensorRepository;
 import com.acousticguard.hub.sensor.service.SensorMonitorService;
 import com.acousticguard.hub.telemetry.service.TelemetryService;
-import com.acousticguard.hub.websocket.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,10 +44,10 @@ public class SensorMonitorServiceImpl implements SensorMonitorService {
     public List<Sensor> checkOfflineSensors() {
         List<Sensor> allSensors = sensorRepository.findAll();
         List<Sensor> offlineSensors = new java.util.ArrayList<>();
-        
+
         for (Sensor sensor : allSensors) {
             SensorStatus currentStatus = telemetryService.getSensorStatus(sensor.getId());
-            
+
             if (currentStatus == SensorStatus.OFFLINE && sensor.getStatus() != SensorStatus.OFFLINE) {
                 sensor.setStatus(SensorStatus.OFFLINE);
                 sensorRepository.save(sensor);
@@ -62,7 +61,7 @@ public class SensorMonitorServiceImpl implements SensorMonitorService {
                 eventPublisherPort.publishSensorStatus(sensor);
             }
         }
-        
+
         return offlineSensors;
     }
 

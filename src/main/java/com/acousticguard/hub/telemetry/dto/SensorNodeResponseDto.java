@@ -20,4 +20,5 @@ public record SensorNodeResponseDto(
         Float longitude,
         String firmwareVersion,
         Map<String, Object> metadata
-) {}
+) {
+}

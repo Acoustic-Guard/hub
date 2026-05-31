@@ -35,7 +35,7 @@ public class AudioFrameService {
     /**
      * Processes an audio frame from a sensor.
      * Updates telemetry, classifies the frame, and creates alerts/incidents if threats are detected.
-     * 
+     *
      * @param frame the audio frame to process
      */
     public void processFrame(AudioFrame frame) {
@@ -60,7 +60,7 @@ public class AudioFrameService {
                 result.threatType(), frame.sensorId(), result.confidence());
 
         Optional<Alert> alert = alertService.createAlert(frame, result);
-        
+
         alert.ifPresent(a -> {
             incidentService.aggregateOrUpdate(a);
         });

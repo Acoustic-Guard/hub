@@ -22,7 +22,7 @@ public class AuthController {
 
     /**
      * Authenticates a user and returns a JWT token.
-     * 
+     *
      * @param request the login request
      * @return the login response with token
      */

@@ -8,4 +8,5 @@ public record AlertStatusUpdateDto(
         @NotBlank(message = "Status cannot be blank")
         @ValueOfEnum(enumClass = IncidentStatus.class, message = "Invalid status value")
         String status
-) {}
+) {
+}

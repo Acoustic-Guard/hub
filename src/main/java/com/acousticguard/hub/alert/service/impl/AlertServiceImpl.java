@@ -4,12 +4,10 @@ import com.acousticguard.hub.alert.model.Alert;
 import com.acousticguard.hub.alert.repository.AlertRepository;
 import com.acousticguard.hub.alert.service.AlertService;
 import com.acousticguard.hub.classifier.dto.ClassificationResult;
-import com.acousticguard.hub.common.enums.ThreatType;
 import com.acousticguard.hub.common.error.AlertNotFoundError;
 import com.acousticguard.hub.common.error.ConfidenceThresholdNotMetError;
 import com.acousticguard.hub.common.error.DomainError;
 import com.acousticguard.hub.sensor.dto.AudioFrame;
-import com.acousticguard.hub.websocket.EventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Coordinate;
@@ -55,7 +53,7 @@ public class AlertServiceImpl implements AlertService {
         Optional<Alert> existingAlert = alertRepository.findBySensorIdAndDetectedAt(frame.sensorId(), detectedAt);
 
         if (existingAlert.isPresent()) {
-            log.debug("Duplicate alert detected for sensor {} at {}, skipping creation", 
+            log.debug("Duplicate alert detected for sensor {} at {}, skipping creation",
                     frame.sensorId(), frame.capturedAtMs());
             return existingAlert;
         }
@@ -77,12 +75,12 @@ public class AlertServiceImpl implements AlertService {
                 .build();
 
         Alert savedAlert = alertRepository.save(alert);
-        log.info("Created alert {} for sensor {} with threat type {} and confidence {}", 
+        log.info("Created alert {} for sensor {} with threat type {} and confidence {}",
                 savedAlert.getId(), frame.sensorId(), result.threatType(), result.confidence());
-        
+
         // Publish alert created event
         eventPublisherPort.publishAlert(savedAlert);
-        
+
         return Optional.of(savedAlert);
     }
 
@@ -97,11 +95,11 @@ public class AlertServiceImpl implements AlertService {
     public Alert updateStatus(UUID id, String status) {
         Alert alert = alertRepository.findById(id)
                 .orElseThrow(() -> new AlertNotFoundError(id));
-        
+
         // Status update logic would go here if Alert had a status field
         // For now, this is a placeholder for future enhancement
         log.info("Updated alert {} status to {}", id, status);
-        
+
         return alertRepository.save(alert);
     }
 

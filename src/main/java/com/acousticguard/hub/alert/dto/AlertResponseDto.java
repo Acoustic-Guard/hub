@@ -19,4 +19,5 @@ public record AlertResponseDto(
         Float latitude,
         Float longitude,
         Map<String, Object> metadata
-) {}
+) {
+}

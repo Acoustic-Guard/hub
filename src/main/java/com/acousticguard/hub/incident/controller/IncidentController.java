@@ -5,7 +5,13 @@ import com.acousticguard.hub.incident.mapper.IncidentMapper;
 import com.acousticguard.hub.incident.service.IncidentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
@@ -24,7 +30,7 @@ public class IncidentController {
 
     /**
      * Retrieves all active incidents within a bounding box.
-     * 
+     *
      * @param minLat minimum latitude
      * @param maxLat maximum latitude
      * @param minLng minimum longitude
@@ -46,7 +52,7 @@ public class IncidentController {
 
     /**
      * Retrieves a specific incident by ID.
-     * 
+     *
      * @param id the incident identifier
      * @return the incident if found
      */
@@ -60,8 +66,8 @@ public class IncidentController {
 
     /**
      * Updates the status of an incident.
-     * 
-     * @param id the incident identifier
+     *
+     * @param id     the incident identifier
      * @param status the new status
      * @return the updated incident
      */

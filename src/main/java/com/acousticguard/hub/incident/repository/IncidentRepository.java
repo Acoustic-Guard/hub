@@ -1,7 +1,6 @@
 package com.acousticguard.hub.incident.repository;
 
 import com.acousticguard.hub.incident.model.Incident;
-import org.locationtech.jts.geom.Point;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;

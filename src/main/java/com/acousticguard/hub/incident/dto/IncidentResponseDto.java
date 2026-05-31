@@ -21,4 +21,5 @@ public record IncidentResponseDto(
         Instant createdAt,
         Instant updatedAt,
         Map<String, Object> metadata
-) {}
+) {
+}

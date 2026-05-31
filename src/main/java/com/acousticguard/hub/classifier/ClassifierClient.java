@@ -11,7 +11,7 @@ public interface ClassifierClient {
 
     /**
      * Classifies an audio frame.
-     * 
+     *
      * @param frame the audio frame to classify
      * @return the classification result
      */

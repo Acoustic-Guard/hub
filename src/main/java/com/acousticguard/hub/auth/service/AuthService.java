@@ -23,7 +23,7 @@ public class AuthService {
 
     /**
      * Authenticates a user and returns a JWT token.
-     * 
+     *
      * @param request the login request
      * @return the login response with token
      */
@@ -33,13 +33,13 @@ public class AuthService {
         );
 
         String token = jwtService.generateToken(request.username());
-        
+
         // Get user role from authentication
         String role = authentication.getAuthorities().stream()
                 .findFirst()
                 .map(auth -> auth.getAuthority().replace("ROLE_", ""))
                 .orElse("USER");
-        
+
         log.info("User {} authenticated successfully with role {}", request.username(), role);
 
         return new LoginResponse(token, request.username(), role);

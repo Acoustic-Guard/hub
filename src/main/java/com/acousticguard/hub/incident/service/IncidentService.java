@@ -16,7 +16,7 @@ public interface IncidentService {
     /**
      * Creates or updates an incident based on an alert.
      * Aggregates alerts into incidents based on spatial and temporal proximity.
-     * 
+     *
      * @param alert the alert to aggregate into an incident
      * @return the created or updated incident
      */
@@ -24,7 +24,7 @@ public interface IncidentService {
 
     /**
      * Retrieves an incident by its identifier.
-     * 
+     *
      * @param id the incident identifier
      * @return the incident if found
      */
@@ -32,7 +32,7 @@ public interface IncidentService {
 
     /**
      * Finds active incidents within a bounding box.
-     * 
+     *
      * @param minLat minimum latitude
      * @param maxLat maximum latitude
      * @param minLng minimum longitude
@@ -43,8 +43,8 @@ public interface IncidentService {
 
     /**
      * Updates the status of an incident.
-     * 
-     * @param id the incident identifier
+     *
+     * @param id     the incident identifier
      * @param status the new status
      * @return the updated incident
      */
