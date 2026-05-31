@@ -2,6 +2,7 @@ plugins {
     java
     id("org.springframework.boot") version "4.0.6"
     id("io.spring.dependency-management") version "1.1.7"
+    id("com.google.protobuf") version "0.9.4"
 }
 
 group = "com.acousticguard.hub"
@@ -49,6 +50,10 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
     implementation("org.liquibase:liquibase-core")
 
+    implementation("io.grpc:grpc-stub:1.62.2")
+    implementation("io.grpc:grpc-protobuf:1.62.2")
+    compileOnly("org.apache.tomcat:annotations-api:6.0.53")
+
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
     annotationProcessor("org.mapstruct:mapstruct-processor:1.5.5.Final")
@@ -71,4 +76,30 @@ tasks.register<org.springframework.boot.gradle.tasks.run.BootRun>("bootRunAcoust
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.25.1"
+    }
+    plugins {
+        create("grpc") {
+            artifact = "io.grpc:protoc-gen-grpc-java:1.62.2"
+        }
+    }
+    generateProtoTasks {
+        all().forEach {
+            it.plugins {
+                create("grpc")
+            }
+        }
+    }
+}
+
+sourceSets {
+    main {
+        proto {
+            srcDir("proto")
+        }
+    }
 }

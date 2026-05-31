@@ -10,6 +10,7 @@ import com.acousticguard.hub.sensor.dto.AudioFrame;
 import com.acousticguard.hub.telemetry.service.TelemetryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -28,6 +29,9 @@ public class AudioFrameService {
     private final AlertService alertService;
     private final IncidentService incidentService;
 
+    @Value("${acoustic.classifier.confidence-threshold:0.75}")
+    private float confidenceThreshold;
+
     /**
      * Processes an audio frame from a sensor.
      * Updates telemetry, classifies the frame, and creates alerts/incidents if threats are detected.
@@ -44,6 +48,11 @@ public class AudioFrameService {
         ClassificationResult result = classifierClient.classify(frame);
 
         if (result.threatType() == ThreatType.BACKGROUND) {
+            return;
+        }
+
+        if (result.confidence() < confidenceThreshold) {
+            log.debug("Threat {} ignored due to low confidence: {}", result.threatType(), result.confidence());
             return;
         }
 
