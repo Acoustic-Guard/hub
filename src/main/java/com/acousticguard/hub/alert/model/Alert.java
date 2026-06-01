@@ -47,7 +47,7 @@ public class Alert {
     @Column(name = "sensor_id", length = 50)
     private String sensorId;
 
-    @Column(name = "location_geo", nullable = false)
+    @Column(name = "location_geo", columnDefinition = "geography(Point, 4326)", nullable = false)
     private Point locationGeo;
 
     @JdbcTypeCode(SqlTypes.JSON)

@@ -34,7 +34,7 @@ public class Incident {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "location_geo", nullable = false)
+    @Column(name = "location_geo", columnDefinition = "geography(Point, 4326)", nullable = false)
     private Point locationGeo;
 
     @Column(nullable = false, length = 50)
