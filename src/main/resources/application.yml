@@ -3,18 +3,31 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/acoustic
-    username: acoustic
-    password: secret
+    url: jdbc:postgresql://localhost:5432/acousticguard
+    username: postgres
+    password: password
+
   liquibase:
-    change-log: classpath:db/changelog/db.changelog-master.yaml
-  security:
     enabled: true
+    change-log: classpath:/db/changelog/db.changelog-master.yaml
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
   grpc:
     client:
       channels:
         python-classifier:
           address: "localhost:50051"
+          negotiation-type: plaintext
 
 jwt:
   secret: ${JWT_SECRET:your-secret-key-must-be-at-least-256-bits-long-for-hs256}

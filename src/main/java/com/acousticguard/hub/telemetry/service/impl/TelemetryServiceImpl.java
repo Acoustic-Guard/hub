@@ -37,11 +37,15 @@ public class TelemetryServiceImpl implements TelemetryService {
 
     @Override
     public void updateNodeTelemetry(AudioFrame frame) {
-        // Calculate latency as time difference between capture and now
         long latencyMs = Instant.now().toEpochMilli() - frame.capturedAtMs();
 
+        NodeState existingState = nodeStates.get(frame.sensorId());
+
+        float avgDb = frame.avgDb() != null ? frame.avgDb() :
+                (existingState != null ? existingState.avgDb() : 0.0f);
+
         NodeState state = new NodeState(
-                frame.avgDb(),
+                avgDb,
                 latencyMs,
                 frame.latitude(),
                 frame.longitude(),
@@ -51,7 +55,7 @@ public class TelemetryServiceImpl implements TelemetryService {
         nodeStates.put(frame.sensorId(), state);
 
         log.debug("Telemetry updated for sensor {}: {} dB, {}ms latency, {}, {}",
-                frame.sensorId(), frame.avgDb(), latencyMs, frame.latitude(), frame.longitude());
+                frame.sensorId(), avgDb, latencyMs, frame.latitude(), frame.longitude());
     }
 
     @Override
