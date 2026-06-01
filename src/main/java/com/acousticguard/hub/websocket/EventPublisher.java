@@ -1,5 +1,8 @@
 package com.acousticguard.hub.websocket;
 
+import com.acousticguard.hub.alert.dto.AlertResponseDto;
+import com.acousticguard.hub.incident.dto.IncidentResponseDto;
+import com.acousticguard.hub.telemetry.dto.SensorNodeResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -17,19 +20,19 @@ public class EventPublisher implements EventPublisherPort {
     private final SimpMessagingTemplate messagingTemplate;
 
     @Override
-    public void publishAlert(Object alert) {
+    public void publishAlert(AlertResponseDto alert) {
         messagingTemplate.convertAndSend("/topic/alerts", alert);
         log.debug("Published alert to /topic/alerts");
     }
 
     @Override
-    public void publishIncident(Object incident) {
+    public void publishIncident(IncidentResponseDto incident) {
         messagingTemplate.convertAndSend("/topic/incidents", incident);
         log.debug("Published incident to /topic/incidents");
     }
 
     @Override
-    public void publishSensorStatus(Object sensor) {
+    public void publishSensorStatus(SensorNodeResponseDto sensor) {
         messagingTemplate.convertAndSend("/topic/telemetry", sensor);
         log.debug("Published sensor status to /topic/telemetry");
     }

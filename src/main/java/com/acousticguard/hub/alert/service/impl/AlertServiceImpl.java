@@ -1,5 +1,6 @@
 package com.acousticguard.hub.alert.service.impl;
 
+import com.acousticguard.hub.alert.mapper.AlertMapper;
 import com.acousticguard.hub.alert.model.Alert;
 import com.acousticguard.hub.alert.repository.AlertRepository;
 import com.acousticguard.hub.alert.service.AlertService;
@@ -33,6 +34,7 @@ public class AlertServiceImpl implements AlertService {
 
     private final AlertRepository alertRepository;
     private final com.acousticguard.hub.websocket.EventPublisherPort eventPublisherPort;
+    private final AlertMapper alertMapper;
     private final GeometryFactory geometryFactory = new GeometryFactory();
 
     @Value("${acoustic.classifier.confidence-threshold:0.75}")
@@ -79,7 +81,7 @@ public class AlertServiceImpl implements AlertService {
                 savedAlert.getId(), frame.sensorId(), result.threatType(), result.confidence());
 
         // Publish alert created event
-        eventPublisherPort.publishAlert(savedAlert);
+        eventPublisherPort.publishAlert(alertMapper.toDto(savedAlert));
 
         return Optional.of(savedAlert);
     }

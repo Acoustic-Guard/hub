@@ -3,6 +3,7 @@ package com.acousticguard.hub.incident.service.impl;
 import com.acousticguard.hub.alert.model.Alert;
 import com.acousticguard.hub.common.enums.IncidentStatus;
 import com.acousticguard.hub.common.error.IncidentNotFoundError;
+import com.acousticguard.hub.incident.mapper.IncidentMapper;
 import com.acousticguard.hub.incident.model.Incident;
 import com.acousticguard.hub.incident.repository.IncidentRepository;
 import com.acousticguard.hub.incident.service.IncidentService;
@@ -32,6 +33,7 @@ public class IncidentServiceImpl implements IncidentService {
 
     private final IncidentRepository incidentRepository;
     private final EventPublisher eventPublisher;
+    private final IncidentMapper incidentMapper;
     private final GeometryFactory geometryFactory = new GeometryFactory();
 
     @Value("${acoustic.incident.spatial-threshold-meters:500}")
@@ -71,7 +73,7 @@ public class IncidentServiceImpl implements IncidentService {
                 saved.getId(), alert.getId(), saved.getLocationGeo().getY(), saved.getLocationGeo().getX());
 
         // Publish incident created event
-        eventPublisher.publishIncident(saved);
+        eventPublisher.publishIncident(incidentMapper.toDto(saved));
 
         return saved;
     }
@@ -100,7 +102,7 @@ public class IncidentServiceImpl implements IncidentService {
         log.info("Updated incident {} status to {}", id, status);
 
         // Publish incident status updated event
-        eventPublisher.publishIncident(updated);
+        eventPublisher.publishIncident(incidentMapper.toDto(updated));
 
         return updated;
     }
@@ -141,7 +143,7 @@ public class IncidentServiceImpl implements IncidentService {
                 updated.getId(), alert.getId(), newIntensity);
 
         // Publish incident updated event
-        eventPublisher.publishIncident(updated);
+        eventPublisher.publishIncident(incidentMapper.toDto(updated));
 
         return updated;
     }

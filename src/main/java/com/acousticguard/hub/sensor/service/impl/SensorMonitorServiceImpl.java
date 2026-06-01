@@ -1,6 +1,7 @@
 package com.acousticguard.hub.sensor.service.impl;
 
 import com.acousticguard.hub.common.enums.SensorStatus;
+import com.acousticguard.hub.sensor.mapper.SensorMapper;
 import com.acousticguard.hub.sensor.model.Sensor;
 import com.acousticguard.hub.sensor.repository.SensorRepository;
 import com.acousticguard.hub.sensor.service.SensorMonitorService;
@@ -27,6 +28,7 @@ public class SensorMonitorServiceImpl implements SensorMonitorService {
     private final SensorRepository sensorRepository;
     private final TelemetryService telemetryService;
     private final com.acousticguard.hub.websocket.EventPublisherPort eventPublisherPort;
+    private final SensorMapper sensorMapper;
 
     @Value("${acoustic.sensor.heartbeat-timeout-seconds:10}")
     private long heartbeatTimeoutSeconds;
@@ -53,12 +55,12 @@ public class SensorMonitorServiceImpl implements SensorMonitorService {
                 sensorRepository.save(sensor);
                 offlineSensors.add(sensor);
                 log.warn("Sensor {} marked as offline", sensor.getId());
-                eventPublisherPort.publishSensorStatus(sensor);
+                eventPublisherPort.publishSensorStatus(sensorMapper.toDto(sensor));
             } else if (currentStatus == SensorStatus.ONLINE && sensor.getStatus() != SensorStatus.ONLINE) {
                 sensor.setStatus(SensorStatus.ONLINE);
                 sensorRepository.save(sensor);
                 log.info("Sensor {} marked as online", sensor.getId());
-                eventPublisherPort.publishSensorStatus(sensor);
+                eventPublisherPort.publishSensorStatus(sensorMapper.toDto(sensor));
             }
         }
 
