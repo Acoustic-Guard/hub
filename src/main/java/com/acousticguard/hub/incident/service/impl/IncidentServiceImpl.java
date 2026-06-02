@@ -80,6 +80,12 @@ public class IncidentServiceImpl implements IncidentService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<Incident> findAllActive() {
+        return incidentRepository.findByStatusNot(com.acousticguard.hub.common.enums.IncidentStatus.RESOLVED.getValue());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<Incident> findById(UUID id) {
         return incidentRepository.findById(id);
     }

@@ -21,33 +21,47 @@ import java.util.UUID;
  * Provides endpoints for retrieving and updating incidents.
  */
 @RestController
-@RequestMapping("/api/incidents")
+@RequestMapping("/api/v1/incidents")
 @RequiredArgsConstructor
 public class IncidentController {
 
     private final IncidentService incidentService;
     private final IncidentMapper incidentMapper;
 
-    /**
-     * Retrieves all active incidents within a bounding box.
-     *
-     * @param minLat minimum latitude
-     * @param maxLat maximum latitude
-     * @param minLng minimum longitude
-     * @param maxLng maximum longitude
-     * @return list of active incidents within the bounding box
-     */
+    // GET /api/v1/incidents
     @GetMapping
     public ResponseEntity<List<IncidentResponseDto>> getActiveIncidents(
-            @RequestParam float minLat,
-            @RequestParam float maxLat,
-            @RequestParam float minLng,
-            @RequestParam float maxLng) {
-        List<IncidentResponseDto> incidents = incidentService.findActiveWithinBbox(minLat, maxLat, minLng, maxLng)
-                .stream()
-                .map(incidentMapper::toDto)
-                .toList();
-        return ResponseEntity.ok(incidents);
+            @RequestParam(required = false) String bbox) {
+
+        if (bbox == null || bbox.isBlank()) {
+            List<IncidentResponseDto> allIncidents = incidentService.findAllActive()
+                    .stream()
+                    .map(incidentMapper::toDto)
+                    .toList();
+            return ResponseEntity.ok(allIncidents);
+        }
+
+        String[] coords = bbox.split(",");
+        if (coords.length != 4) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        try {
+            float minLng = Float.parseFloat(coords[0].trim());
+            float minLat = Float.parseFloat(coords[1].trim());
+            float maxLng = Float.parseFloat(coords[2].trim());
+            float maxLat = Float.parseFloat(coords[3].trim());
+
+            List<IncidentResponseDto> bboxIncidents = incidentService.findActiveWithinBbox(minLat, maxLat, minLng, maxLng)
+                    .stream()
+                    .map(incidentMapper::toDto)
+                    .toList();
+
+            return ResponseEntity.ok(bboxIncidents);
+
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     /**

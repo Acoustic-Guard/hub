@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -22,7 +23,7 @@ import java.util.UUID;
  * Provides endpoints for retrieving and updating alerts.
  */
 @RestController
-@RequestMapping("/api/alerts")
+@RequestMapping("/api/v1/alerts")
 @RequiredArgsConstructor
 public class AlertController {
 
@@ -30,15 +31,18 @@ public class AlertController {
     private final AlertMapper alertMapper;
 
     /**
-     * Retrieves all alerts with pagination support.
+     * Retrieves all alerts.
      *
-     * @param pageable pagination parameters
-     * @return paginated list of alerts
+     * @return list of alerts
      */
     @GetMapping
-    public ResponseEntity<Page<AlertResponseDto>> getAllAlerts(Pageable pageable) {
-        // TODO: Implement pagination in AlertService
-        return ResponseEntity.ok().build();
+    public ResponseEntity<List<AlertResponseDto>> getAllAlerts() {
+        List<AlertResponseDto> alerts = alertService.findAll()
+                .stream()
+                .map(alertMapper::toDto)
+                .toList();
+
+        return ResponseEntity.ok(alerts);
     }
 
     /**

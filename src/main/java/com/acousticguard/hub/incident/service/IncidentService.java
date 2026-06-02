@@ -23,6 +23,13 @@ public interface IncidentService {
     Incident aggregateOrUpdate(Alert alert);
 
     /**
+     * Finds all active incidents (without spatial filtering).
+     *
+     * @return list of all active incidents
+     */
+    List<Incident> findAllActive();
+
+    /**
      * Retrieves an incident by its identifier.
      *
      * @param id the incident identifier

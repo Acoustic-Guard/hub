@@ -15,10 +15,12 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -103,6 +105,12 @@ public class AlertServiceImpl implements AlertService {
         log.info("Updated alert {} status to {}", id, status);
 
         return alertRepository.save(alert);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Alert> findAll() {
+        return alertRepository.findAll(Sort.by(Sort.Direction.DESC, "detectedAt"));
     }
 
     private String formatLocation(float latitude, float longitude) {

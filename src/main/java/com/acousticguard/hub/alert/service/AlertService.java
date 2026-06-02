@@ -4,6 +4,7 @@ import com.acousticguard.hub.alert.model.Alert;
 import com.acousticguard.hub.classifier.dto.ClassificationResult;
 import com.acousticguard.hub.sensor.dto.AudioFrame;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -40,4 +41,6 @@ public interface AlertService {
      * @return the updated alert
      */
     Alert updateStatus(UUID id, String status);
+
+    List<Alert> findAll();
 }

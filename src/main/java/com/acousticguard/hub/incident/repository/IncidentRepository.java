@@ -14,6 +14,8 @@ import java.util.UUID;
 @Repository
 public interface IncidentRepository extends JpaRepository<Incident, UUID>, JpaSpecificationExecutor<Incident> {
 
+    List<Incident> findByStatusNot(String status);
+
     @Query(value = "SELECT * FROM incidents WHERE ST_DWithin(location_geo, ST_MakePoint(:longitude, :latitude)::geography, :radiusMeters) = true AND type = :threatType AND updated_at > :timeThreshold AND status != 'RESOLVED'", nativeQuery = true)
     List<Incident> findNearbyActiveIncidents(
             @Param("latitude") double latitude,
