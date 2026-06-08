@@ -1,5 +1,6 @@
 package com.acousticguard.hub.incident.repository;
 
+import com.acousticguard.hub.analytics.dto.ThreatDistributionDto;
 import com.acousticguard.hub.incident.model.Incident;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -32,4 +33,16 @@ public interface IncidentRepository extends JpaRepository<Incident, UUID>, JpaSp
             @Param("maxLng") double maxLng,
             @Param("maxLat") double maxLat
     );
+
+    long countByCreatedAtAfter(Instant threshold);
+
+    long countByCreatedAtAfterAndIntensityGreaterThanEqual(Instant threshold, Float intensity);
+
+    @Query("SELECT AVG(i.intensity) FROM Incident i WHERE i.createdAt > :threshold")
+    Double averageIntensityByCreatedAtAfter(@Param("threshold") Instant threshold);
+
+    @Query("SELECT new com.acousticguard.hub.analytics.dto.ThreatDistributionDto(i.type, COUNT(i)) FROM Incident i WHERE i.createdAt > :threshold GROUP BY i.type")
+    List<ThreatDistributionDto> findThreatDistributionByCreatedAtAfter(@Param("threshold") Instant threshold);
+
+    List<Incident> findTop50ByCreatedAtAfterOrderByCreatedAtDesc(Instant threshold);
 }
