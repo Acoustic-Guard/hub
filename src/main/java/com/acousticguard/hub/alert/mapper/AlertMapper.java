@@ -3,6 +3,8 @@ package com.acousticguard.hub.alert.mapper;
 import com.acousticguard.hub.alert.dto.AlertResponseDto;
 import com.acousticguard.hub.alert.model.Alert;
 import com.acousticguard.hub.common.config.MapperConfig;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -23,5 +25,11 @@ public interface AlertMapper {
     @Named("pointToLongitude")
     default Float pointToLongitude(Point point) {
         return point != null ? (float) point.getX() : null;
+    }
+
+    @Named("latitudeLongitudeToPoint")
+    default Point latitudeLongitudeToPoint(float latitude, float longitude) {
+        GeometryFactory geometryFactory = new GeometryFactory();
+        return geometryFactory.createPoint(new Coordinate(longitude, latitude));
     }
 }

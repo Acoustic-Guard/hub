@@ -11,8 +11,6 @@ import com.acousticguard.hub.common.error.DomainError;
 import com.acousticguard.hub.sensor.dto.AudioFrame;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Sort;
@@ -37,7 +35,6 @@ public class AlertServiceImpl implements AlertService {
     private final AlertRepository alertRepository;
     private final com.acousticguard.hub.websocket.EventPublisherPort eventPublisherPort;
     private final AlertMapper alertMapper;
-    private final GeometryFactory geometryFactory = new GeometryFactory();
 
     @Value("${acoustic.classifier.confidence-threshold:0.75}")
     private float confidenceThreshold;
@@ -45,14 +42,12 @@ public class AlertServiceImpl implements AlertService {
     @Override
     @Transactional
     public Optional<Alert> createAlert(AudioFrame frame, ClassificationResult result) {
-        // Enforce confidence threshold
         if (result.confidence() < confidenceThreshold) {
             DomainError error = new ConfidenceThresholdNotMetError(result.confidence(), confidenceThreshold);
             log.debug("{}", error.getMessage());
             return Optional.empty();
         }
 
-        // Enforce idempotency: check for existing alert with same sensorId and capturedAtMs
         Instant detectedAt = Instant.ofEpochMilli(frame.capturedAtMs());
         Optional<Alert> existingAlert = alertRepository.findBySensorIdAndDetectedAt(frame.sensorId(), detectedAt);
 
@@ -62,12 +57,8 @@ public class AlertServiceImpl implements AlertService {
             return existingAlert;
         }
 
-        // Create Point location from lat/lon (X = longitude, Y = latitude)
-        Point location = geometryFactory.createPoint(
-                new Coordinate(frame.longitude(), frame.latitude())
-        );
+        Point location = alertMapper.latitudeLongitudeToPoint(frame.latitude(), frame.longitude());
 
-        // Create new alert
         Alert alert = Alert.builder()
                 .threatType(result.threatType().getValue())
                 .confidence(result.confidence())
@@ -82,7 +73,6 @@ public class AlertServiceImpl implements AlertService {
         log.info("Created alert {} for sensor {} with threat type {} and confidence {}",
                 savedAlert.getId(), frame.sensorId(), result.threatType(), result.confidence());
 
-        // Publish alert created event
         eventPublisherPort.publishAlert(alertMapper.toDto(savedAlert));
 
         return Optional.of(savedAlert);
@@ -100,8 +90,6 @@ public class AlertServiceImpl implements AlertService {
         Alert alert = alertRepository.findById(id)
                 .orElseThrow(() -> new AlertNotFoundError(id));
 
-        // Status update logic would go here if Alert had a status field
-        // For now, this is a placeholder for future enhancement
         log.info("Updated alert {} status to {}", id, status);
 
         return alertRepository.save(alert);

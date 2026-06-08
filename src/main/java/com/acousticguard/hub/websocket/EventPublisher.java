@@ -1,6 +1,7 @@
 package com.acousticguard.hub.websocket;
 
 import com.acousticguard.hub.alert.dto.AlertResponseDto;
+import com.acousticguard.hub.common.constant.WebSocketTopics;
 import com.acousticguard.hub.incident.dto.IncidentResponseDto;
 import com.acousticguard.hub.telemetry.dto.SensorNodeResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -8,10 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
-/**
- * Publisher for domain events to WebSocket clients via STOMP.
- * Broadcasts events to topics /topic/alerts and /topic/telemetry.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -21,19 +18,19 @@ public class EventPublisher implements EventPublisherPort {
 
     @Override
     public void publishAlert(AlertResponseDto alert) {
-        messagingTemplate.convertAndSend("/topic/alerts", alert);
-        log.debug("Published alert to /topic/alerts");
+        messagingTemplate.convertAndSend(WebSocketTopics.ALERTS, alert);
+        log.debug("Published alert to {}", WebSocketTopics.ALERTS);
     }
 
     @Override
     public void publishIncident(IncidentResponseDto incident) {
-        messagingTemplate.convertAndSend("/topic/incidents", incident);
-        log.debug("Published incident to /topic/incidents");
+        messagingTemplate.convertAndSend(WebSocketTopics.INCIDENTS, incident);
+        log.debug("Published incident to {}", WebSocketTopics.INCIDENTS);
     }
 
     @Override
     public void publishSensorStatus(SensorNodeResponseDto sensor) {
-        messagingTemplate.convertAndSend("/topic/telemetry", sensor);
-        log.debug("Published sensor status to /topic/telemetry");
+        messagingTemplate.convertAndSend(WebSocketTopics.TELEMETRY, sensor);
+        log.debug("Published sensor status to {}", WebSocketTopics.TELEMETRY);
     }
 }
