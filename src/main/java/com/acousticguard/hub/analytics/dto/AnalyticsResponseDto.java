@@ -11,6 +11,7 @@ public record AnalyticsResponseDto(
         Double avgConfidence,
         Long criticalCount,
         List<ThreatDistributionDto> threatDistribution,
-        List<IncidentHistoryDto> history
+        List<IncidentHistoryDto> history,
+        List<TimeSeriesPointDto> timeSeries
 ) {
 }

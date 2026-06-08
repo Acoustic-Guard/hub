@@ -13,6 +13,8 @@ public record IncidentHistoryDto(
         ThreatType type,
         Float intensity,
         IncidentStatus status,
-        Instant createdAt
+        Instant createdAt,
+        Float latitude,
+        Float longitude
 ) {
 }

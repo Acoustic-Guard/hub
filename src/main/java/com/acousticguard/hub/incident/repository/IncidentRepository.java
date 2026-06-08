@@ -45,4 +45,6 @@ public interface IncidentRepository extends JpaRepository<Incident, UUID>, JpaSp
     List<ThreatDistributionDto> findThreatDistributionByCreatedAtAfter(@Param("threshold") Instant threshold);
 
     List<Incident> findTop50ByCreatedAtAfterOrderByCreatedAtDesc(Instant threshold);
+
+    List<Incident> findByCreatedAtAfterOrderByCreatedAtAsc(Instant threshold);
 }

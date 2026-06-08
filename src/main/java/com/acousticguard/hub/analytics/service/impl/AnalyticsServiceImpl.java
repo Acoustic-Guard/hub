@@ -3,6 +3,7 @@ package com.acousticguard.hub.analytics.service.impl;
 import com.acousticguard.hub.analytics.dto.AnalyticsResponseDto;
 import com.acousticguard.hub.analytics.dto.IncidentHistoryDto;
 import com.acousticguard.hub.analytics.dto.ThreatDistributionDto;
+import com.acousticguard.hub.analytics.dto.TimeSeriesPointDto;
 import com.acousticguard.hub.analytics.service.AnalyticsService;
 import com.acousticguard.hub.alert.repository.AlertRepository;
 import com.acousticguard.hub.common.enums.IncidentStatus;
@@ -11,11 +12,15 @@ import com.acousticguard.hub.incident.model.Incident;
 import com.acousticguard.hub.incident.repository.IncidentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.locationtech.jts.geom.Point;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -44,13 +49,16 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .map(this::mapToIncidentHistoryDto)
                 .toList();
 
+        List<TimeSeriesPointDto> timeSeries = buildTimeSeries(range, threshold);
+
         return new AnalyticsResponseDto(
                 totalIncidents,
                 activeAlerts,
                 avgConfidence,
                 criticalCount,
                 threatDistribution,
-                history
+                history,
+                timeSeries
         );
     }
 
@@ -66,13 +74,68 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         ThreatType threatType = parseThreatType(incident.getType());
         IncidentStatus status = parseIncidentStatus(incident.getStatus());
         
+        Point locationGeo = incident.getLocationGeo();
+        Float latitude = locationGeo != null ? (float) locationGeo.getY() : null;
+        Float longitude = locationGeo != null ? (float) locationGeo.getX() : null;
+        
         return new IncidentHistoryDto(
                 incident.getId(),
                 threatType,
                 incident.getIntensity(),
                 status,
-                incident.getCreatedAt()
+                incident.getCreatedAt(),
+                latitude,
+                longitude
         );
+    }
+
+    private List<TimeSeriesPointDto> buildTimeSeries(String range, Instant threshold) {
+        ChronoUnit stepUnit = switch (range.toLowerCase()) {
+            case "7d", "30d" -> ChronoUnit.DAYS;
+            default -> ChronoUnit.HOURS;
+        };
+
+        int bucketCount = switch (range.toLowerCase()) {
+            case "7d" -> 7;
+            case "30d" -> 30;
+            default -> 24;
+        };
+
+        Instant now = Instant.now();
+        Instant roundedNow = now.truncatedTo(stepUnit);
+        
+        List<Instant> bucketStarts = new ArrayList<>();
+        Instant current = threshold.truncatedTo(stepUnit);
+        while (current.isBefore(roundedNow) || current.equals(roundedNow)) {
+            bucketStarts.add(current);
+            current = current.plus(1, stepUnit);
+        }
+
+        List<Incident> allIncidents = incidentRepository.findByCreatedAtAfterOrderByCreatedAtAsc(threshold);
+
+        return bucketStarts.stream()
+                .map(bucketStart -> {
+                    Instant bucketEnd = bucketStart.plus(1, stepUnit);
+                    List<Incident> bucketIncidents = allIncidents.stream()
+                            .filter(incident -> !incident.getCreatedAt().isBefore(bucketStart) 
+                                    && incident.getCreatedAt().isBefore(bucketEnd))
+                            .toList();
+
+                    Map<String, Long> countsByType = bucketIncidents.stream()
+                            .collect(Collectors.groupingBy(
+                                    incident -> incident.getType() != null ? incident.getType() : "BACKGROUND",
+                                    Collectors.counting()
+                            ));
+
+                    return new TimeSeriesPointDto(
+                            bucketStart,
+                            countsByType.getOrDefault("UAV", 0L),
+                            countsByType.getOrDefault("Explosion", 0L),
+                            countsByType.getOrDefault("Siren", 0L),
+                            countsByType.getOrDefault("Generator", 0L)
+                    );
+                })
+                .toList();
     }
 
     private ThreatType parseThreatType(String type) {
