@@ -18,8 +18,10 @@ public class AnalyticsController {
 
     @GetMapping
     public ResponseEntity<AnalyticsResponseDto> getAnalytics(
-            @RequestParam(defaultValue = "24h") String range) {
-        AnalyticsResponseDto analytics = analyticsService.getAnalytics(range);
+            @RequestParam(defaultValue = "24h") String range,
+            @RequestParam(required = false) String start,
+            @RequestParam(required = false) String end) {
+        AnalyticsResponseDto analytics = analyticsService.getAnalytics(range, start, end);
         return ResponseEntity.ok(analytics);
     }
 }

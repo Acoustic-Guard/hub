@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,8 +32,17 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final AlertRepository alertRepository;
 
     @Override
-    public AnalyticsResponseDto getAnalytics(String range) {
-        Instant threshold = parseRangeToThreshold(range);
+    public AnalyticsResponseDto getAnalytics(String range, String start, String end) {
+        Instant threshold;
+        Instant endTime;
+        
+        if (start != null && end != null && !start.isBlank() && !end.isBlank()) {
+            threshold = Instant.parse(start);
+            endTime = Instant.parse(end);
+        } else {
+            threshold = parseRangeToThreshold(range);
+            endTime = Instant.now();
+        }
 
         long totalIncidents = incidentRepository.countByCreatedAtAfter(threshold);
         long activeAlerts = alertRepository.countByDetectedAtAfter(threshold);
@@ -49,7 +59,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .map(this::mapToIncidentHistoryDto)
                 .toList();
 
-        List<TimeSeriesPointDto> timeSeries = buildTimeSeries(range, threshold);
+        List<TimeSeriesPointDto> timeSeries = buildTimeSeries(threshold, endTime);
 
         return new AnalyticsResponseDto(
                 totalIncidents,
@@ -89,24 +99,15 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         );
     }
 
-    private List<TimeSeriesPointDto> buildTimeSeries(String range, Instant threshold) {
-        ChronoUnit stepUnit = switch (range.toLowerCase()) {
-            case "7d", "30d" -> ChronoUnit.DAYS;
-            default -> ChronoUnit.HOURS;
-        };
+    private List<TimeSeriesPointDto> buildTimeSeries(Instant threshold, Instant endTime) {
+        long durationHours = java.time.Duration.between(threshold, endTime).toHours();
+        ChronoUnit stepUnit = durationHours <= 24 ? ChronoUnit.HOURS : ChronoUnit.DAYS;
 
-        int bucketCount = switch (range.toLowerCase()) {
-            case "7d" -> 7;
-            case "30d" -> 30;
-            default -> 24;
-        };
+        Instant roundedEndTime = endTime.truncatedTo(stepUnit);
 
-        Instant now = Instant.now();
-        Instant roundedNow = now.truncatedTo(stepUnit);
-        
         List<Instant> bucketStarts = new ArrayList<>();
         Instant current = threshold.truncatedTo(stepUnit);
-        while (current.isBefore(roundedNow) || current.equals(roundedNow)) {
+        while (current.isBefore(roundedEndTime) || current.equals(roundedEndTime)) {
             bucketStarts.add(current);
             current = current.plus(1, stepUnit);
         }
@@ -116,24 +117,23 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return bucketStarts.stream()
                 .map(bucketStart -> {
                     Instant bucketEnd = bucketStart.plus(1, stepUnit);
-                    List<Incident> bucketIncidents = allIncidents.stream()
-                            .filter(incident -> !incident.getCreatedAt().isBefore(bucketStart) 
-                                    && incident.getCreatedAt().isBefore(bucketEnd))
-                            .toList();
 
-                    Map<String, Long> countsByType = bucketIncidents.stream()
+                    Map<ThreatType, Long> typeCounts = allIncidents.stream()
+                            .filter(incident -> !incident.getCreatedAt().isBefore(bucketStart)
+                                    && incident.getCreatedAt().isBefore(bucketEnd))
                             .collect(Collectors.groupingBy(
-                                    incident -> incident.getType() != null ? incident.getType() : "BACKGROUND",
+                                    incident -> parseThreatType(incident.getType()),
                                     Collectors.counting()
                             ));
 
-                    return new TimeSeriesPointDto(
-                            bucketStart,
-                            countsByType.getOrDefault("UAV", 0L),
-                            countsByType.getOrDefault("Explosion", 0L),
-                            countsByType.getOrDefault("Siren", 0L),
-                            countsByType.getOrDefault("Generator", 0L)
-                    );
+                    Map<String, Long> flattenedCounts = Arrays.stream(ThreatType.values())
+                            .filter(type -> type != ThreatType.BACKGROUND)
+                            .collect(Collectors.toMap(
+                                    ThreatType::getValue,
+                                    type -> typeCounts.getOrDefault(type, 0L)
+                            ));
+
+                    return new TimeSeriesPointDto(bucketStart, flattenedCounts);
                 })
                 .toList();
     }
