@@ -33,33 +33,33 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     public AnalyticsResponseDto getAnalytics(String range, String start, String end) {
-        Instant threshold;
+        Instant startTime;
         Instant endTime;
-        
+
         if (start != null && end != null && !start.isBlank() && !end.isBlank()) {
-            threshold = Instant.parse(start);
+            startTime = Instant.parse(start);
             endTime = Instant.parse(end);
         } else {
-            threshold = parseRangeToThreshold(range);
+            startTime = parseRangeToThreshold(range);
             endTime = Instant.now();
         }
 
-        long totalIncidents = incidentRepository.countByCreatedAtAfter(threshold);
-        long activeAlerts = alertRepository.countByDetectedAtAfter(threshold);
-        
-        Double avgIntensity = incidentRepository.averageIntensityByCreatedAtAfter(threshold);
+        long totalIncidents = incidentRepository.countByCreatedAtBetween(startTime, endTime);
+        long activeAlerts = alertRepository.countByDetectedAtBetween(startTime, endTime);
+
+        Double avgIntensity = incidentRepository.averageIntensityByCreatedAtBetween(startTime, endTime);
         double avgConfidence = avgIntensity != null ? avgIntensity * 100.0 : 0.0;
-        
-        long criticalCount = incidentRepository.countByCreatedAtAfterAndIntensityGreaterThanEqual(threshold, 0.9f);
-        
-        List<ThreatDistributionDto> threatDistribution = incidentRepository.findThreatDistributionByCreatedAtAfter(threshold);
-        
-        List<Incident> recentIncidents = incidentRepository.findTop50ByCreatedAtAfterOrderByCreatedAtDesc(threshold);
+
+        long criticalCount = incidentRepository.countByCreatedAtBetweenAndIntensityGreaterThanEqual(startTime, endTime, 0.9f);
+
+        List<ThreatDistributionDto> threatDistribution = incidentRepository.findThreatDistributionByCreatedAtBetween(startTime, endTime);
+
+        List<Incident> recentIncidents = incidentRepository.findTop50ByCreatedAtBetweenOrderByCreatedAtDesc(startTime, endTime);
         List<IncidentHistoryDto> history = recentIncidents.stream()
                 .map(this::mapToIncidentHistoryDto)
                 .toList();
 
-        List<TimeSeriesPointDto> timeSeries = buildTimeSeries(threshold, endTime);
+        List<TimeSeriesPointDto> timeSeries = buildTimeSeries(startTime, endTime);
 
         return new AnalyticsResponseDto(
                 totalIncidents,
@@ -99,20 +99,20 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         );
     }
 
-    private List<TimeSeriesPointDto> buildTimeSeries(Instant threshold, Instant endTime) {
-        long durationHours = java.time.Duration.between(threshold, endTime).toHours();
+    private List<TimeSeriesPointDto> buildTimeSeries(Instant startTime, Instant endTime) {
+        long durationHours = java.time.Duration.between(startTime, endTime).toHours();
         ChronoUnit stepUnit = durationHours <= 24 ? ChronoUnit.HOURS : ChronoUnit.DAYS;
 
         Instant roundedEndTime = endTime.truncatedTo(stepUnit);
 
         List<Instant> bucketStarts = new ArrayList<>();
-        Instant current = threshold.truncatedTo(stepUnit);
+        Instant current = startTime.truncatedTo(stepUnit);
         while (current.isBefore(roundedEndTime) || current.equals(roundedEndTime)) {
             bucketStarts.add(current);
             current = current.plus(1, stepUnit);
         }
 
-        List<Incident> allIncidents = incidentRepository.findByCreatedAtAfterOrderByCreatedAtAsc(threshold);
+        List<Incident> allIncidents = incidentRepository.findByCreatedAtBetweenOrderByCreatedAtAsc(startTime, endTime);
 
         return bucketStarts.stream()
                 .map(bucketStart -> {

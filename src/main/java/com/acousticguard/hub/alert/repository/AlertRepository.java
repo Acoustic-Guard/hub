@@ -23,4 +23,6 @@ public interface AlertRepository extends JpaRepository<Alert, UUID>, JpaSpecific
     Optional<Alert> findBySensorIdAndDetectedAt(String sensorId, Instant detectedAt);
 
     long countByDetectedAtAfter(Instant threshold);
+
+    long countByDetectedAtBetween(Instant start, Instant end);
 }

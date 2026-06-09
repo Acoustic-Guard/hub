@@ -36,15 +36,29 @@ public interface IncidentRepository extends JpaRepository<Incident, UUID>, JpaSp
 
     long countByCreatedAtAfter(Instant threshold);
 
+    long countByCreatedAtBetween(Instant start, Instant end);
+
     long countByCreatedAtAfterAndIntensityGreaterThanEqual(Instant threshold, Float intensity);
+
+    long countByCreatedAtBetweenAndIntensityGreaterThanEqual(Instant start, Instant end, Float intensity);
 
     @Query("SELECT AVG(i.intensity) FROM Incident i WHERE i.createdAt > :threshold")
     Double averageIntensityByCreatedAtAfter(@Param("threshold") Instant threshold);
 
+    @Query("SELECT AVG(i.intensity) FROM Incident i WHERE i.createdAt BETWEEN :start AND :end")
+    Double averageIntensityByCreatedAtBetween(@Param("start") Instant start, @Param("end") Instant end);
+
     @Query("SELECT new com.acousticguard.hub.analytics.dto.ThreatDistributionDto(i.type, COUNT(i)) FROM Incident i WHERE i.createdAt > :threshold GROUP BY i.type")
     List<ThreatDistributionDto> findThreatDistributionByCreatedAtAfter(@Param("threshold") Instant threshold);
 
+    @Query("SELECT new com.acousticguard.hub.analytics.dto.ThreatDistributionDto(i.type, COUNT(i)) FROM Incident i WHERE i.createdAt BETWEEN :start AND :end GROUP BY i.type")
+    List<ThreatDistributionDto> findThreatDistributionByCreatedAtBetween(@Param("start") Instant start, @Param("end") Instant end);
+
     List<Incident> findTop50ByCreatedAtAfterOrderByCreatedAtDesc(Instant threshold);
 
+    List<Incident> findTop50ByCreatedAtBetweenOrderByCreatedAtDesc(Instant start, Instant end);
+
     List<Incident> findByCreatedAtAfterOrderByCreatedAtAsc(Instant threshold);
+
+    List<Incident> findByCreatedAtBetweenOrderByCreatedAtAsc(Instant start, Instant end);
 }
