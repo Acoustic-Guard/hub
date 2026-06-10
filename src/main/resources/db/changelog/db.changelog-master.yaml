@@ -13,3 +13,5 @@ databaseChangeLog:
       file: db/changelog/changes/05-insert-admin.sql
   - include:
       file: db/changelog/changes/06-insert-test-sensors.sql
+  - include:
+      file: db/changelog/changes/07-add-noise-to-sensors.sql
