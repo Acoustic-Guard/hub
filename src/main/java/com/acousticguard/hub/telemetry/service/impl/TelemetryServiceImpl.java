@@ -72,7 +72,7 @@ public class TelemetryServiceImpl implements TelemetryService {
      * - more than 5 minutes have passed since the last update
      *
      * @param sensorId the sensor identifier
-     * @param avgDb the average decibel level
+     * @param avgDb    the average decibel level
      */
     private void persistNoiseDataWithThrottle(String sensorId, float avgDb) {
         try {

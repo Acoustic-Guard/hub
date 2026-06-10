@@ -22,11 +22,11 @@ public class PublicMapController {
     @GetMapping
     public ResponseEntity<List<NoisePointDto>> getNoiseMap() {
         List<Sensor> onlineSensors = sensorRepository.findByStatusAndCurrentAvgDbIsNotNull(SensorStatus.ONLINE);
-        
+
         List<NoisePointDto> noisePoints = onlineSensors.stream()
                 .map(this::mapToNoisePointDto)
                 .toList();
-        
+
         return ResponseEntity.ok(noisePoints);
     }
 

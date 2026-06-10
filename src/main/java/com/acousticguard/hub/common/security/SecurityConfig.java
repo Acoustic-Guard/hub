@@ -70,8 +70,8 @@ public class SecurityConfig {
         return args -> {
             String hash = passwordEncoder.encode("admin123");
             String sql = "INSERT INTO auth_users (username, password, role) " +
-                         "VALUES ('admin', ?, 'ADMIN') " +
-                         "ON CONFLICT (username) DO UPDATE SET password = EXCLUDED.password";
+                    "VALUES ('admin', ?, 'ADMIN') " +
+                    "ON CONFLICT (username) DO UPDATE SET password = EXCLUDED.password";
             jdbcTemplate.update(sql, hash);
         };
     }

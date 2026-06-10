@@ -1,11 +1,11 @@
 package com.acousticguard.hub.analytics.service.impl;
 
+import com.acousticguard.hub.alert.repository.AlertRepository;
 import com.acousticguard.hub.analytics.dto.AnalyticsResponseDto;
 import com.acousticguard.hub.analytics.dto.IncidentHistoryDto;
 import com.acousticguard.hub.analytics.dto.ThreatDistributionDto;
 import com.acousticguard.hub.analytics.dto.TimeSeriesPointDto;
 import com.acousticguard.hub.analytics.service.AnalyticsService;
-import com.acousticguard.hub.alert.repository.AlertRepository;
 import com.acousticguard.hub.common.enums.IncidentStatus;
 import com.acousticguard.hub.common.enums.ThreatType;
 import com.acousticguard.hub.incident.model.Incident;
@@ -83,11 +83,11 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private IncidentHistoryDto mapToIncidentHistoryDto(Incident incident) {
         ThreatType threatType = parseThreatType(incident.getType());
         IncidentStatus status = parseIncidentStatus(incident.getStatus());
-        
+
         Point locationGeo = incident.getLocationGeo();
         Float latitude = locationGeo != null ? (float) locationGeo.getY() : null;
         Float longitude = locationGeo != null ? (float) locationGeo.getX() : null;
-        
+
         return new IncidentHistoryDto(
                 incident.getId(),
                 threatType,

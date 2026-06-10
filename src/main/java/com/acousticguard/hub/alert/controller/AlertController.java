@@ -5,8 +5,6 @@ import com.acousticguard.hub.alert.dto.AlertStatusUpdateDto;
 import com.acousticguard.hub.alert.mapper.AlertMapper;
 import com.acousticguard.hub.alert.service.AlertService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
