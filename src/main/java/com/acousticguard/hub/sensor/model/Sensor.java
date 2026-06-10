@@ -48,6 +48,12 @@ public class Sensor {
     @Column(name = "last_heartbeat")
     private Instant lastHeartbeat;
 
+    @Column(name = "current_avg_db")
+    private Float currentAvgDb;
+
+    @Column(name = "noise_updated_at")
+    private Instant noiseUpdatedAt;
+
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 

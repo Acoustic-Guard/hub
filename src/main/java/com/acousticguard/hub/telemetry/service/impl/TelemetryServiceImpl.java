@@ -3,6 +3,7 @@ package com.acousticguard.hub.telemetry.service.impl;
 import com.acousticguard.hub.common.enums.SensorStatus;
 import com.acousticguard.hub.common.enums.SystemStatus;
 import com.acousticguard.hub.sensor.dto.AudioFrame;
+import com.acousticguard.hub.sensor.model.Sensor;
 import com.acousticguard.hub.sensor.repository.SensorRepository;
 import com.acousticguard.hub.telemetry.dto.TelemetryResponseDto;
 import com.acousticguard.hub.telemetry.service.TelemetryService;
@@ -11,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -56,6 +58,46 @@ public class TelemetryServiceImpl implements TelemetryService {
 
         log.debug("Telemetry updated for sensor {}: {} dB, {}ms latency, {}, {}",
                 frame.sensorId(), avgDb, latencyMs, frame.latitude(), frame.longitude());
+
+        // Throttled DB persistence for noise data
+        if (frame.avgDb() != null) {
+            persistNoiseDataWithThrottle(frame.sensorId(), frame.avgDb());
+        }
+    }
+
+    /**
+     * Persists noise data to the database with a 5-minute throttle.
+     * Updates the sensor's current_avg_db and noise_updated_at only if:
+     * - noise_updated_at is null (first update), OR
+     * - more than 5 minutes have passed since the last update
+     *
+     * @param sensorId the sensor identifier
+     * @param avgDb the average decibel level
+     */
+    private void persistNoiseDataWithThrottle(String sensorId, float avgDb) {
+        try {
+            Sensor sensor = sensorRepository.findById(sensorId).orElse(null);
+            if (sensor == null) {
+                log.debug("Sensor {} not found in database, skipping noise persistence", sensorId);
+                return;
+            }
+
+            Instant now = Instant.now();
+            Instant threshold = now.minus(Duration.ofMinutes(5));
+
+            // Check if we should update (null or older than 5 minutes)
+            if (sensor.getNoiseUpdatedAt() == null || sensor.getNoiseUpdatedAt().isBefore(threshold)) {
+                sensor.setCurrentAvgDb(avgDb);
+                sensor.setNoiseUpdatedAt(now);
+                sensorRepository.save(sensor);
+                log.debug("Persisted noise data for sensor {}: {} dB", sensorId, avgDb);
+            } else {
+                log.debug("Skipping noise persistence for sensor {} (throttled, last update {})",
+                        sensorId, sensor.getNoiseUpdatedAt());
+            }
+        } catch (Exception e) {
+            log.error("Failed to persist noise data for sensor {}", sensorId, e);
+        }
     }
 
     @Override

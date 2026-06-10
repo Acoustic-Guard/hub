@@ -1,5 +1,6 @@
 package com.acousticguard.hub.sensor.repository;
 
+import com.acousticguard.hub.common.enums.SensorStatus;
 import com.acousticguard.hub.sensor.model.Sensor;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -28,4 +29,12 @@ public interface SensorRepository extends JpaRepository<Sensor, String> {
      * @return list of sensors with last heartbeat before the threshold
      */
     List<Sensor> findByLastHeartbeatBefore(Instant before);
+
+    /**
+     * Finds sensors with the specified status and non-null current average decibel level.
+     *
+     * @param status the sensor status
+     * @return list of sensors with the specified status and current_avg_db not null
+     */
+    List<Sensor> findByStatusAndCurrentAvgDbIsNotNull(SensorStatus status);
 }
