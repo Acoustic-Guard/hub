@@ -12,7 +12,7 @@ public class RabbitMqConfig {
 
     public static final String EXCHANGE_NAME = "acoustic.frames";
     public static final String QUEUE_FRAMES = "q.frames";
-    public static final String QUEUE_HEARTBEATS = "q.heartbeats";
+    public static final String QUEUE_TELEMETRY = "q.telemetry";
 
     @Bean
     public TopicExchange framesExchange() {
@@ -26,8 +26,9 @@ public class RabbitMqConfig {
     }
 
     @Bean
-    public Queue heartbeatsQueue() {
-        return new Queue(QUEUE_HEARTBEATS, true);
+    public Queue telemetryQueue() {
+        // true ensures the queue survives broker restarts
+        return new Queue(QUEUE_TELEMETRY, true);
     }
 
     @Bean
@@ -37,8 +38,8 @@ public class RabbitMqConfig {
     }
 
     @Bean
-    public Binding heartbeatsBinding(Queue heartbeatsQueue, TopicExchange framesExchange) {
+    public Binding telemetryBinding(Queue telemetryQueue, TopicExchange framesExchange) {
         // Routes messages with routing keys like 'sensor.telemetry.test'
-        return BindingBuilder.bind(heartbeatsQueue).to(framesExchange).with("sensor.telemetry.*");
+        return BindingBuilder.bind(telemetryQueue).to(framesExchange).with("sensor.telemetry.*");
     }
 }

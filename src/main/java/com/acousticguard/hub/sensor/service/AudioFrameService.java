@@ -7,7 +7,6 @@ import com.acousticguard.hub.classifier.dto.ClassificationResult;
 import com.acousticguard.hub.common.enums.ThreatType;
 import com.acousticguard.hub.incident.service.IncidentService;
 import com.acousticguard.hub.sensor.dto.AudioFrame;
-import com.acousticguard.hub.telemetry.service.TelemetryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +17,7 @@ import java.util.Optional;
 /**
  * Service for processing audio frames from sensors.
  * Coordinates classification, alert creation, and incident aggregation.
+ * Single Responsibility: Route audio frames to ML threat detection.
  */
 @Slf4j
 @Service
@@ -25,7 +25,6 @@ import java.util.Optional;
 public class AudioFrameService {
 
     private final ClassifierClient classifierClient;
-    private final TelemetryService telemetryService;
     private final AlertService alertService;
     private final IncidentService incidentService;
 
@@ -34,16 +33,12 @@ public class AudioFrameService {
 
     /**
      * Processes an audio frame from a sensor.
-     * Updates telemetry, classifies the frame, and creates alerts/incidents if threats are detected.
+     * Classifies the frame and creates alerts/incidents if threats are detected.
      *
      * @param frame the audio frame to process
      */
     public void processFrame(AudioFrame frame) {
         log.debug("Processing frame from sensor: {}", frame.sensorId());
-
-        if (frame.avgDb() != null) {
-            telemetryService.updateNodeTelemetry(frame);
-        }
 
         ClassificationResult result = classifierClient.classify(frame);
 

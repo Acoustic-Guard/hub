@@ -110,8 +110,7 @@ public class AlertServiceImpl implements AlertService {
                 "modelVersion", result.modelVer(),
                 "sampleRateHz", frame.sampleRateHz(),
                 "fftBinsCount", frame.fftBins() != null ? frame.fftBins().size() : 0,
-                "peakDb", frame.peakDb() != null ? frame.peakDb() : 0.0f,
-                "avgDb", frame.avgDb() != null ? frame.avgDb() : 0.0f
+                "peakDb", frame.peakDb() != null ? frame.peakDb() : 0.0f
         );
     }
 }

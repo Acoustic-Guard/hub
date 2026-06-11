@@ -1,16 +1,15 @@
-package com.acousticguard.hub.sensor.dto;
+package com.acousticguard.hub.telemetry.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.List;
 
 /**
- * DTO for audio frames from RabbitMQ q.frames queue.
- * Contains high-frequency data strictly for ML threat classification.
+ * DTO for telemetry events from RabbitMQ q.telemetry queue.
+ * Contains low-frequency data strictly for the noise map.
  * Uses camelCase JSON property names to match Rust serialization.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record AudioFrame(
+public record TelemetryEvent(
         @JsonProperty("sensorId")
         String sensorId,
 
@@ -23,13 +22,7 @@ public record AudioFrame(
         @JsonProperty("longitude")
         float longitude,
 
-        @JsonProperty("fftBins")
-        List<Float> fftBins,
-
-        @JsonProperty("sampleRateHz")
-        float sampleRateHz,
-
-        @JsonProperty("peakDb")
-        Float peakDb
+        @JsonProperty("avgDb")
+        float avgDb
 ) {
 }
