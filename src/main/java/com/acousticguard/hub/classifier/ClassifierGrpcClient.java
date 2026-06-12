@@ -28,7 +28,15 @@ public class ClassifierGrpcClient implements ClassifierClient {
                     .addAllFftBins(frame.fftBins() != null ? frame.fftBins() : java.util.List.of())
                     .setSampleRateHz(frame.sampleRateHz())
                     .setPeakDb(frame.peakDb() != null ? frame.peakDb() : 0.0f)
+                    .setAvgDb(frame.avgDb() != null ? frame.avgDb() : 0.0f)
+                    .addAllRawAudio(frame.rawAudio() != null ? 
+                            frame.rawAudio().stream().map(Integer::valueOf).toList() : 
+                            java.util.List.of())
                     .build();
+
+            log.info("Sending gRPC request. Sensor: {}, Raw audio payload size: {}",
+                    frame.sensorId(),
+                    frame.rawAudio() != null ? frame.rawAudio().size() : 0);
 
             ClassificationResponse response = classifierStub.classify(request);
 

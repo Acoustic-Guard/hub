@@ -30,6 +30,12 @@ public record AudioFrame(
         float sampleRateHz,
 
         @JsonProperty("peakDb")
-        Float peakDb
+        Float peakDb,
+
+        @JsonProperty("avgDb")
+        Float avgDb,
+
+        @JsonProperty("rawAudio")
+        List<Short> rawAudio
 ) {
 }
