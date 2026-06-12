@@ -2,48 +2,70 @@ package com.acousticguard.hub.telemetry.service.impl;
 
 import com.acousticguard.hub.common.enums.SensorStatus;
 import com.acousticguard.hub.common.enums.SystemStatus;
-import com.acousticguard.hub.sensor.model.Sensor;
-import com.acousticguard.hub.sensor.repository.SensorRepository;
 import com.acousticguard.hub.telemetry.dto.TelemetryEvent;
 import com.acousticguard.hub.telemetry.dto.TelemetryResponseDto;
 import com.acousticguard.hub.telemetry.service.TelemetryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Internal record to store node state including noise level, coordinates, and last seen timestamp.
+ * Immutable record representing the real-time state of an edge node.
+ * Stored entirely in memory to prevent database bottlenecks during high-frequency telemetry tracking.
+ *
+ * @param avgDb     The processed decibel level (dB SPL) for visualization.
+ * @param latitude  GPS latitude of the sensor.
+ * @param longitude GPS longitude of the sensor.
+ * @param latencyMs Network transmission latency between the edge agent capture and hub processing.
+ * @param lastSeen  The exact UTC timestamp when the node last reported its state.
  */
-record NodeState(float avgDb, float latitude, float longitude, Instant lastSeen) {
+record NodeState(float avgDb, float latitude, float longitude, long latencyMs, Instant lastSeen) {
 }
 
 /**
- * Implementation of TelemetryService.
- * Handles telemetry collection and reporting using in-memory tracking.
- * Calculates sensor status on the fly to avoid DB bottlenecks.
+ * Core business logic implementation for managing acoustic sensor telemetry.
+ * <p>
+ * This service acts as an orchestrator. It utilizes a highly concurrent in-memory cache
+ * for real-time state retrieval and delegates database persistence to an external
+ * adapter to strictly adhere to the Single Responsibility Principle (SRP).
+ * </p>
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class TelemetryServiceImpl implements TelemetryService {
 
-    private final SensorRepository sensorRepository;
+    // Depending on the abstraction (Interface), not the concretion.
+    private final SensorPersistenceService sensorPersistenceService;
 
+    // WebSocket messaging template for real-time telemetry broadcasts
+    private final SimpMessagingTemplate simpMessagingTemplate;
+
+    // Concurrent map to safely store and update node states from multiple async RabbitMQ listener threads
     private final Map<String, NodeState> nodeStates = new ConcurrentHashMap<>();
 
+    /**
+     * Processes incoming telemetry events, updates the in-memory state map,
+     * calculates network latency, and delegates persistence operations.
+     *
+     * @param event The structured telemetry payload received from the message broker.
+     */
     @Override
     public void updateNodeTelemetry(TelemetryEvent event) {
-        NodeState existingState = nodeStates.get(event.sensorId());
+        long currentMs = System.currentTimeMillis();
 
-        // Convert dBFS (negative, e.g., -60.0 to 0.0) to dB SPL (positive, e.g., 40.0 to 90.0)
-        // Formula: displayDb = Math.max(30.0f, event.avgDb() + 100.0f)
-        // This shifts -60 dBFS to 40 dB SPL, and clamps minimum to 30 dB for ambient silence
+        // Calculate one-way latency. Math.max prevents negative values in case of slight clock skews
+        long latencyMs = Math.max(0, currentMs - event.capturedAtMs());
+
+        // Adapter Pattern logic: Convert raw dBFS (negative) to dB SPL (positive) for frontend display.
+        // Clamping the minimum to 30 dB to realistically represent ambient background silence.
         float rawDbFs = event.avgDb();
         float displayDb = Math.max(30.0f, rawDbFs + 100.0f);
 
@@ -51,102 +73,56 @@ public class TelemetryServiceImpl implements TelemetryService {
                 displayDb,
                 event.latitude(),
                 event.longitude(),
+                latencyMs,
                 Instant.now()
         );
 
+        // Update the thread-safe cache
         nodeStates.put(event.sensorId(), state);
 
-        log.debug("Telemetry updated for sensor {}: {} dB (display), {} dBFS (raw), lat={}, lng={}",
-                event.sensorId(), displayDb, rawDbFs, event.latitude(), event.longitude());
+        log.debug("Telemetry updated for sensor {}: {} dB (display), {} ms latency",
+                event.sensorId(), displayDb, latencyMs);
 
-        // Throttled DB persistence for noise data (always call to ensure auto-registration)
-        persistNoiseDataWithThrottle(event.sensorId(), displayDb, event.latitude(), event.longitude());
+        // Delegate persistence to the adapter.
+        // This call crosses the class boundary, triggering the @Transactional proxy correctly.
+        sensorPersistenceService.persistNoiseDataWithThrottle(
+                event.sensorId(), displayDb, event.latitude(), event.longitude()
+        );
     }
 
     /**
-     * Persists noise data to the database with a 5-minute throttle.
-     * Updates the sensor's current_avg_db and noise_updated_at only if:
-     * - noise_updated_at is null (first update), OR
-     * - more than 5 minutes have passed since the last update
+     * Aggregates the current real-time state of the entire sensor network.
+     * This method calculates averages on the fly from the in-memory cache,
+     * ensuring extremely fast response times for the frontend dashboard.
      *
-     * If the sensor does not exist in the database, it will be auto-registered
-     * with the provided telemetry data.
-     *
-     * @param sensorId the sensor identifier
-     * @param avgDb    the average decibel level (display value in dB SPL)
-     * @param latitude the sensor latitude
-     * @param longitude the sensor longitude
+     * @return A comprehensive DTO containing system-wide metrics and health statuses.
      */
-    @Transactional
-    public void persistNoiseDataWithThrottle(String sensorId, float avgDb, float latitude, float longitude) {
-        try {
-            Sensor sensor = sensorRepository.findById(sensorId).orElse(null);
-            Instant now = Instant.now();
-
-            if (sensor == null) {
-                // Auto-register new sensor
-                sensor = Sensor.builder()
-                        .id(sensorId)
-                        .location("Auto-registered")
-                        .latitude(latitude)
-                        .longitude(longitude)
-                        .status(SensorStatus.ONLINE)
-                        .currentAvgDb(avgDb)
-                        .lastHeartbeat(now)
-                        .noiseUpdatedAt(now)
-                        .build();
-                sensorRepository.save(sensor);
-                log.info("Auto-registered new sensor {}: lat={}, lng={}, avgDb={} dB",
-                        sensorId, latitude, longitude, avgDb);
-            } else {
-                // Update existing sensor - only save if 5-minute threshold has passed
-                Instant threshold = now.minus(Duration.ofMinutes(5));
-
-                // Check if we should update noise data (null or older than 5 minutes)
-                if (sensor.getNoiseUpdatedAt() == null || sensor.getNoiseUpdatedAt().isBefore(threshold)) {
-                    sensor.setStatus(SensorStatus.ONLINE);
-                    sensor.setLastHeartbeat(now);
-                    sensor.setCurrentAvgDb(avgDb);
-                    sensor.setNoiseUpdatedAt(now);
-                    sensorRepository.save(sensor);
-                    log.debug("Persisted noise data for sensor {}: {} dB", sensorId, avgDb);
-                } else {
-                    log.debug("Skipping DB update for sensor {} (throttled, last update {})",
-                            sensorId, sensor.getNoiseUpdatedAt());
-                }
-            }
-        } catch (Exception e) {
-            log.error("Failed to persist noise data for sensor {}", sensorId, e);
-        }
-    }
-
     @Override
-    @Transactional(readOnly = true)
     public TelemetryResponseDto getSystemTelemetry() {
-        int activeNodes = (int) sensorRepository.count();
+        int activeNodes = nodeStates.size();
 
         double avgSystemNoise = nodeStates.values().stream()
                 .mapToDouble(NodeState::avgDb)
                 .average()
                 .orElse(0.0);
 
+        int avgLatency = (int) nodeStates.values().stream()
+                .mapToLong(NodeState::latencyMs)
+                .average()
+                .orElse(0L);
+
+        // Evaluate system health based on aggregated metrics
         SystemStatus noiseStatus = avgSystemNoise > 70.0 ? SystemStatus.WARNING : SystemStatus.NORMAL;
         SystemStatus nodesStatus = activeNodes > 0 ? SystemStatus.NORMAL : SystemStatus.CRITICAL;
 
-        // Calculate offline nodes from in-memory data
-        Instant threshold = Instant.now().minusSeconds(10);
-        long offlineNodes = nodeStates.values().stream()
-                .filter(state -> state.lastSeen().isBefore(threshold))
-                .count();
-
         return new TelemetryResponseDto(
                 activeNodes,
-                0, // Latency not applicable for telemetry-only flow
+                avgLatency,
                 (int) Math.round(avgSystemNoise),
                 nodesStatus,
                 SystemStatus.NORMAL,
                 noiseStatus,
-                (int) offlineNodes,
+                0, // Offline nodes count is inherently 0 because dead nodes are evicted from the map
                 0,
                 99.9f,
                 Instant.now()
@@ -154,10 +130,11 @@ public class TelemetryServiceImpl implements TelemetryService {
     }
 
     /**
-     * Gets the status of a sensor based on in-memory heartbeat data.
+     * Resolves the current operational status of a specific sensor.
+     * Evaluates the in-memory state to determine if the heartbeat is within the acceptable threshold.
      *
-     * @param sensorId the sensor identifier
-     * @return the sensor status
+     * @param sensorId Unique identifier of the sensor.
+     * @return ONLINE if active within the last 10 seconds, OFFLINE otherwise.
      */
     public SensorStatus getSensorStatus(String sensorId) {
         NodeState state = nodeStates.get(sensorId);
@@ -165,7 +142,44 @@ public class TelemetryServiceImpl implements TelemetryService {
             return SensorStatus.OFFLINE;
         }
 
-        Instant threshold = Instant.now().minusSeconds(10);
+        Instant threshold = Instant.now().minusSeconds(30);
         return state.lastSeen().isAfter(threshold) ? SensorStatus.ONLINE : SensorStatus.OFFLINE;
+    }
+
+    /**
+     * Reaper job executed continuously in the background.
+     * Scans the active node map and evicts any sensors that have stopped transmitting telemetry.
+     * Operates purely on the functional map entry level to ensure thread safety
+     * and prevent ConcurrentModificationException.
+     */
+    @Scheduled(fixedRate = 5000)
+    public void sweepDeadSensors() {
+        // Defines the time-to-live (TTL) for a sensor heartbeat (15 seconds)
+        Instant deadThreshold = Instant.now().minus(30, ChronoUnit.SECONDS);
+
+        nodeStates.entrySet().removeIf(entry -> {
+            boolean isDead = entry.getValue().lastSeen().isBefore(deadThreshold);
+            if (isDead) {
+                log.warn("Sensor {} went offline. Evicted from the active telemetry cache.", entry.getKey());
+            }
+            return isDead; // Returning true removes the entry from the map
+        });
+    }
+
+    /**
+     * Broadcasts real-time telemetry updates to all connected WebSocket clients.
+     * Executes every 2 seconds to ensure the frontend dashboard displays current system state.
+     * Uses the same STOMP topic (/topic/telemetry) that the React frontend subscribes to.
+     */
+    @Scheduled(fixedRate = 2000)
+    public void broadcastTelemetry() {
+        try {
+            TelemetryResponseDto telemetry = getSystemTelemetry();
+            simpMessagingTemplate.convertAndSend("/topic/telemetry", telemetry);
+            log.debug("Telemetry broadcasted: {} nodes, {} ms latency, {} dB noise",
+                    telemetry.activeNodes(), telemetry.avgLatencyMs(), telemetry.noiseLevelDb());
+        } catch (Exception e) {
+            log.error("Failed to broadcast telemetry", e);
+        }
     }
 }
