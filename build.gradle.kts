@@ -54,6 +54,8 @@ dependencies {
     implementation("io.grpc:grpc-protobuf:1.62.2")
     compileOnly("org.apache.tomcat:annotations-api:6.0.53")
 
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
+
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
     annotationProcessor("org.mapstruct:mapstruct-processor:1.5.5.Final")

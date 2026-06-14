@@ -3,6 +3,11 @@ package com.acousticguard.hub.incident.controller;
 import com.acousticguard.hub.incident.dto.IncidentResponseDto;
 import com.acousticguard.hub.incident.mapper.IncidentMapper;
 import com.acousticguard.hub.incident.service.IncidentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +28,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/incidents")
 @RequiredArgsConstructor
+@Tag(name = "Incidents", description = "Incident management endpoints")
 public class IncidentController {
 
     private final IncidentService incidentService;
@@ -30,7 +36,13 @@ public class IncidentController {
 
     // GET /api/v1/incidents
     @GetMapping
+    @Operation(summary = "Get active incidents", description = "Retrieve all active incidents, optionally filtered by bounding box")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved incidents"),
+        @ApiResponse(responseCode = "400", description = "Invalid bounding box format")
+    })
     public ResponseEntity<List<IncidentResponseDto>> getActiveIncidents(
+            @Parameter(description = "Bounding box in format 'minLng,minLat,maxLng,maxLat'")
             @RequestParam(required = false) String bbox) {
 
         if (bbox == null || bbox.isBlank()) {
@@ -71,7 +83,14 @@ public class IncidentController {
      * @return the incident if found
      */
     @GetMapping("/{id}")
-    public ResponseEntity<IncidentResponseDto> getIncidentById(@PathVariable UUID id) {
+    @Operation(summary = "Get incident by ID", description = "Retrieve a specific incident by its UUID")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved incident"),
+        @ApiResponse(responseCode = "404", description = "Incident not found")
+    })
+    public ResponseEntity<IncidentResponseDto> getIncidentById(
+            @Parameter(description = "Incident UUID")
+            @PathVariable UUID id) {
         return incidentService.findById(id)
                 .map(incidentMapper::toDto)
                 .map(ResponseEntity::ok)
@@ -86,8 +105,15 @@ public class IncidentController {
      * @return the updated incident
      */
     @PatchMapping("/{id}/status")
+    @Operation(summary = "Update incident status", description = "Update the status of a specific incident")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully updated incident status"),
+        @ApiResponse(responseCode = "404", description = "Incident not found")
+    })
     public ResponseEntity<IncidentResponseDto> updateIncidentStatus(
+            @Parameter(description = "Incident UUID")
             @PathVariable UUID id,
+            @Parameter(description = "New status (e.g., RESOLVED, INVESTIGATING)")
             @RequestBody String status) {
         try {
             var updatedIncident = incidentService.updateStatus(id, status);

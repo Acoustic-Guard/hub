@@ -7,6 +7,7 @@ import com.acousticguard.hub.telemetry.dto.TelemetryResponseDto;
 import com.acousticguard.hub.telemetry.service.TelemetryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,9 @@ public class TelemetryServiceImpl implements TelemetryService {
 
     // Concurrent map to safely store and update node states from multiple async RabbitMQ listener threads
     private final Map<String, NodeState> nodeStates = new ConcurrentHashMap<>();
+
+    @Value("${acoustic.sensor.heartbeat-timeout-seconds:10}")
+    private long heartbeatTimeoutSeconds;
 
     /**
      * Processes incoming telemetry events, updates the in-memory state map,
@@ -134,7 +138,7 @@ public class TelemetryServiceImpl implements TelemetryService {
      * Evaluates the in-memory state to determine if the heartbeat is within the acceptable threshold.
      *
      * @param sensorId Unique identifier of the sensor.
-     * @return ONLINE if active within the last 10 seconds, OFFLINE otherwise.
+     * @return ONLINE if active within the configured heartbeat timeout, OFFLINE otherwise.
      */
     public SensorStatus getSensorStatus(String sensorId) {
         NodeState state = nodeStates.get(sensorId);
@@ -142,8 +146,22 @@ public class TelemetryServiceImpl implements TelemetryService {
             return SensorStatus.OFFLINE;
         }
 
-        Instant threshold = Instant.now().minusSeconds(30);
+        Instant threshold = Instant.now().minusSeconds(heartbeatTimeoutSeconds);
         return state.lastSeen().isAfter(threshold) ? SensorStatus.ONLINE : SensorStatus.OFFLINE;
+    }
+
+    /**
+     * Gets the current latency for a specific sensor.
+     *
+     * @param sensorId Unique identifier of the sensor.
+     * @return Latency in milliseconds, or null if sensor is offline or not found.
+     */
+    public Long getSensorLatency(String sensorId) {
+        NodeState state = nodeStates.get(sensorId);
+        if (state == null) {
+            return null;
+        }
+        return state.latencyMs();
     }
 
     /**
@@ -154,8 +172,8 @@ public class TelemetryServiceImpl implements TelemetryService {
      */
     @Scheduled(fixedRate = 5000)
     public void sweepDeadSensors() {
-        // Defines the time-to-live (TTL) for a sensor heartbeat (15 seconds)
-        Instant deadThreshold = Instant.now().minus(30, ChronoUnit.SECONDS);
+        // Defines the time-to-live (TTL) for a sensor heartbeat based on configured timeout
+        Instant deadThreshold = Instant.now().minus(heartbeatTimeoutSeconds, ChronoUnit.SECONDS);
 
         nodeStates.entrySet().removeIf(entry -> {
             boolean isDead = entry.getValue().lastSeen().isBefore(deadThreshold);

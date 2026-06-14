@@ -30,7 +30,7 @@ public class EventPublisher implements EventPublisherPort {
 
     @Override
     public void publishSensorStatus(SensorNodeResponseDto sensor) {
-        messagingTemplate.convertAndSend(WebSocketTopics.TELEMETRY, sensor);
-        log.debug("Published sensor status to {}", WebSocketTopics.TELEMETRY);
+        messagingTemplate.convertAndSend(WebSocketTopics.SENSORS, sensor);
+        log.debug("Published sensor status to {}", WebSocketTopics.SENSORS);
     }
 }

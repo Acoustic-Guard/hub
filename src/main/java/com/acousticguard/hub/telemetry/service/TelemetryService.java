@@ -32,4 +32,12 @@ public interface TelemetryService {
      * @return the sensor status
      */
     SensorStatus getSensorStatus(String sensorId);
+
+    /**
+     * Gets the current latency for a specific sensor.
+     *
+     * @param sensorId the sensor identifier
+     * @return latency in milliseconds, or null if sensor is offline or not found
+     */
+    Long getSensorLatency(String sensorId);
 }

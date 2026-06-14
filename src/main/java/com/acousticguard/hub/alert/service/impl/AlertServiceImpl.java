@@ -49,12 +49,26 @@ public class AlertServiceImpl implements AlertService {
         }
 
         Instant detectedAt = Instant.ofEpochMilli(frame.capturedAtMs());
+        
+        // Check for exact timestamp match first (most common case)
         Optional<Alert> existingAlert = alertRepository.findBySensorIdAndDetectedAt(frame.sensorId(), detectedAt);
-
+        
         if (existingAlert.isPresent()) {
             log.debug("Duplicate alert detected for sensor {} at {}, skipping creation",
                     frame.sensorId(), frame.capturedAtMs());
             return existingAlert;
+        }
+
+        // Check for duplicates within 1-second sliding window for same sensor and threat type
+        Instant windowStart = detectedAt.minusSeconds(1);
+        Instant windowEnd = detectedAt.plusSeconds(1);
+        List<Alert> recentAlerts = alertRepository.findBySensorIdAndThreatTypeAndDetectedAtBetween(
+                frame.sensorId(), result.threatType().getValue(), windowStart, windowEnd);
+        
+        if (!recentAlerts.isEmpty()) {
+            log.debug("Duplicate alert detected for sensor {} within 1-second window at {}, skipping creation",
+                    frame.sensorId(), frame.capturedAtMs());
+            return Optional.of(recentAlerts.get(0));
         }
 
         Point location = alertMapper.latitudeLongitudeToPoint(frame.latitude(), frame.longitude());

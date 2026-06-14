@@ -30,7 +30,7 @@ public class SensorMonitorServiceImpl implements SensorMonitorService {
     private final com.acousticguard.hub.websocket.EventPublisherPort eventPublisherPort;
     private final SensorMapper sensorMapper;
 
-    @Value("${acoustic.sensor.heartbeat-timeout-seconds:10}")
+    @Value("${acoustic.sensor.heartbeat-timeout-seconds:60}")
     private long heartbeatTimeoutSeconds;
 
     @Override
@@ -55,12 +55,34 @@ public class SensorMonitorServiceImpl implements SensorMonitorService {
                 sensorRepository.save(sensor);
                 offlineSensors.add(sensor);
                 log.warn("Sensor {} marked as offline", sensor.getId());
-                eventPublisherPort.publishSensorStatus(sensorMapper.toDto(sensor));
+                
+                // Get DTO and update with latency (null for offline)
+                var dto = sensorMapper.toDto(sensor);
+                eventPublisherPort.publishSensorStatus(dto);
             } else if (currentStatus == SensorStatus.ONLINE && sensor.getStatus() != SensorStatus.ONLINE) {
                 sensor.setStatus(SensorStatus.ONLINE);
                 sensorRepository.save(sensor);
                 log.info("Sensor {} marked as online", sensor.getId());
-                eventPublisherPort.publishSensorStatus(sensorMapper.toDto(sensor));
+                
+                // Get DTO and update with latency from telemetry
+                var dto = sensorMapper.toDto(sensor);
+                Long latency = telemetryService.getSensorLatency(sensor.getId());
+                if (dto.latencyMs() == null && latency != null) {
+                    // Create new DTO with latency (since records are immutable)
+                    dto = new com.acousticguard.hub.telemetry.dto.SensorNodeResponseDto(
+                        dto.id(),
+                        dto.location(),
+                        dto.status(),
+                        latency.intValue(),
+                        dto.uptimePercent(),
+                        dto.lastHeartbeat(),
+                        dto.latitude(),
+                        dto.longitude(),
+                        dto.firmwareVersion(),
+                        dto.metadata()
+                    );
+                }
+                eventPublisherPort.publishSensorStatus(dto);
             }
         }
 
