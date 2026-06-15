@@ -31,22 +31,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-@EnabledIf("isDockerAvailable")
-@Disabled("Integration tests require Docker Desktop with proper daemon configuration")
 class IncidentRepositoryIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private IncidentRepository incidentRepository;
-
-    static boolean isDockerAvailable() {
-        try {
-            Process process = Runtime.getRuntime().exec("docker --version");
-            process.waitFor();
-            return process.exitValue() == 0;
-        } catch (Exception e) {
-            return false;
-        }
-    }
 
     private GeometryFactory geometryFactory;
 

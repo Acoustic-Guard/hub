@@ -41,8 +41,6 @@ import static org.awaitility.Awaitility.await;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-@EnabledIf("isDockerAvailable")
-@Disabled("Integration tests require Docker Desktop with proper daemon configuration")
 class AmqpIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
@@ -56,16 +54,6 @@ class AmqpIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    static boolean isDockerAvailable() {
-        try {
-            Process process = Runtime.getRuntime().exec("docker --version");
-            process.waitFor();
-            return process.exitValue() == 0;
-        } catch (Exception e) {
-            return false;
-        }
-    }
 
     @BeforeEach
     void setUp() {

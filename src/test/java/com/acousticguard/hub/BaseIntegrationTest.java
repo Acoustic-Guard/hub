@@ -4,7 +4,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -21,7 +21,7 @@ import org.testcontainers.utility.DockerImageName;
 public abstract class BaseIntegrationTest {
 
     // Singleton PostgreSQL container with PostGIS support
-    static final PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>(
+    static final PostgreSQLContainer postgresContainer = new PostgreSQLContainer(
             DockerImageName.parse("postgis/postgis:15-3.3").asCompatibleSubstituteFor("postgres")
     )
             .withDatabaseName("acoustic_guard_test")
@@ -30,7 +30,7 @@ public abstract class BaseIntegrationTest {
 
     // Singleton RabbitMQ container
     static final RabbitMQContainer rabbitMQContainer = new RabbitMQContainer(
-            DockerImageName.parse("rabbitmq:3.12-management")
+            DockerImageName.parse("rabbitmq:4.3-management")
     );
 
     @DynamicPropertySource
