@@ -24,7 +24,12 @@ import java.util.UUID;
 
 /**
  * REST controller for incident management.
- * Provides endpoints for retrieving and updating incidents.
+ * <p>
+ * Provides endpoints for retrieving active incidents, filtering by geographic bounding box,
+ * and updating incident status. This controller delegates business logic to {@link IncidentService}
+ * and uses {@link IncidentMapper} for DTO conversions. All incident queries leverage PostGIS
+ * spatial capabilities for efficient geospatial filtering.
+ * </p>
  */
 @RestController
 @RequestMapping("/api/v1/incidents")
@@ -35,12 +40,24 @@ public class IncidentController {
     private final IncidentService incidentService;
     private final IncidentMapper incidentMapper;
 
-    // GET /api/v1/incidents
+    /**
+     * Retrieves all active incidents, optionally filtered by a geographic bounding box.
+     * <p>
+     * If no bounding box parameter is provided, returns all active incidents in the system.
+     * When a bounding box is specified, uses PostGIS spatial queries to filter incidents
+     * within the specified geographic area. The bounding box format is "minLng,minLat,maxLng,maxLat".
+     * </p>
+     *
+     * @param bbox optional bounding box string in format "minLng,minLat,maxLng,maxLat"
+     * @return HTTP 200 OK with a list of active incidents (filtered by bbox if provided),
+     * HTTP 400 Bad Request if bbox format is invalid,
+     * or HTTP 500 if an internal server error occurs
+     */
     @GetMapping
     @Operation(summary = "Get active incidents", description = "Retrieve all active incidents, optionally filtered by bounding box")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved incidents"),
-        @ApiResponse(responseCode = "400", description = "Invalid bounding box format")
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved incidents"),
+            @ApiResponse(responseCode = "400", description = "Invalid bounding box format")
     })
     public ResponseEntity<List<IncidentResponseDto>> getActiveIncidents(
             @Parameter(description = "Bounding box in format 'minLng,minLat,maxLng,maxLat'")
@@ -57,9 +74,9 @@ public class IncidentController {
         try {
             BoundingBox boundingBox = BoundingBox.fromString(bbox);
             List<IncidentResponseDto> bboxIncidents = incidentService.findActiveWithinBbox(
-                    boundingBox.minLat(), boundingBox.maxLat(),
-                    boundingBox.minLng(), boundingBox.maxLng()
-            )
+                            boundingBox.minLat(), boundingBox.maxLat(),
+                            boundingBox.minLng(), boundingBox.maxLng()
+                    )
                     .stream()
                     .map(incidentMapper::toDto)
                     .toList();
@@ -72,16 +89,23 @@ public class IncidentController {
     }
 
     /**
-     * Retrieves a specific incident by ID.
+     * Retrieves a specific incident by its unique identifier.
+     * <p>
+     * This endpoint returns detailed information about a single incident including
+     * its status, location, associated alerts, and metadata. If the incident does not
+     * exist or is not found, returns HTTP 404.
+     * </p>
      *
-     * @param id the incident identifier
-     * @return the incident if found
+     * @param id the unique identifier (UUID) of the incident to retrieve
+     * @return HTTP 200 OK with the incident details if found,
+     * HTTP 404 Not Found if the incident does not exist,
+     * or HTTP 500 if an internal server error occurs
      */
     @GetMapping("/{id}")
     @Operation(summary = "Get incident by ID", description = "Retrieve a specific incident by its UUID")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved incident"),
-        @ApiResponse(responseCode = "404", description = "Incident not found")
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved incident"),
+            @ApiResponse(responseCode = "404", description = "Incident not found")
     })
     public ResponseEntity<IncidentResponseDto> getIncidentById(
             @Parameter(description = "Incident UUID")
@@ -93,17 +117,24 @@ public class IncidentController {
     }
 
     /**
-     * Updates the status of an incident.
+     * Updates the status of a specific incident.
+     * <p>
+     * This endpoint allows changing the incident status (e.g., from ACTIVE to RESOLVED,
+     * INVESTIGATING, etc.). The status update is persisted to the database and triggers
+     * any necessary downstream notifications. Invalid status values will result in HTTP 404.
+     * </p>
      *
-     * @param id     the incident identifier
-     * @param status the new status
-     * @return the updated incident
+     * @param id     the unique identifier (UUID) of the incident to update
+     * @param status the new status value as a string (e.g., "RESOLVED", "INVESTIGATING")
+     * @return HTTP 200 OK with the updated incident details if successful,
+     * HTTP 404 Not Found if the incident does not exist or status is invalid,
+     * or HTTP 500 if an internal server error occurs
      */
     @PatchMapping("/{id}/status")
     @Operation(summary = "Update incident status", description = "Update the status of a specific incident")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully updated incident status"),
-        @ApiResponse(responseCode = "404", description = "Incident not found")
+            @ApiResponse(responseCode = "200", description = "Successfully updated incident status"),
+            @ApiResponse(responseCode = "404", description = "Incident not found")
     })
     public ResponseEntity<IncidentResponseDto> updateIncidentStatus(
             @Parameter(description = "Incident UUID")

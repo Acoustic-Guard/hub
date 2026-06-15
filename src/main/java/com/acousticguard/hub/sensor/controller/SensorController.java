@@ -15,7 +15,11 @@ import java.util.List;
 
 /**
  * REST controller for sensor management.
- * Provides endpoints for sensor telemetry and status.
+ * <p>
+ * Provides endpoints for retrieving sensor information including status, latency,
+ * and telemetry data. This controller delegates sensor registry operations to
+ * {@link SensorRegistryService} and telemetry queries to {@link TelemetryService}.
+ * </p>
  */
 @RestController
 @RequestMapping("/api/v1/sensors")
@@ -27,9 +31,16 @@ public class SensorController {
     private final TelemetryService telemetryService;
 
     /**
-     * Gets all sensor nodes with their status and latency.
+     * Retrieves all sensor nodes with their current status and network latency.
+     * <p>
+     * This endpoint fetches all registered sensors from the database, enriches each
+     * sensor with real-time latency data from the in-memory telemetry cache, and
+     * returns the aggregated results. Latency is calculated as the time difference
+     * between when the sensor captured the data and when the hub processed it.
+     * </p>
      *
-     * @return list of sensors with status and latency
+     * @return HTTP 200 OK with a list of sensor nodes including status and latency,
+     * or HTTP 500 if an internal server error occurs
      */
     @GetMapping
     public ResponseEntity<List<SensorNodeResponseDto>> getAllNodes() {
