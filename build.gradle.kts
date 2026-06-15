@@ -63,6 +63,10 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.amqp:spring-rabbit-test")
     testImplementation("org.springframework.security:spring-security-test")
+    testImplementation("org.testcontainers:testcontainers:1.19.8")
+    testImplementation("org.testcontainers:postgresql:1.19.8")
+    testImplementation("org.testcontainers:rabbitmq:1.19.8")
+    testImplementation("org.mockito:mockito-core:5.8.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
