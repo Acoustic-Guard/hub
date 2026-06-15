@@ -1,0 +1,19 @@
+spring:
+  liquibase:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+acoustic:
+  classifier:
+    confidence-threshold: 0.10
+  sensor:
+    heartbeat-timeout-seconds: 60
+  incident:
+    spatial-threshold-meters: 500
+    temporal-threshold-seconds: 300

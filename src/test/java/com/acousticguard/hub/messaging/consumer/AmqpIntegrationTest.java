@@ -9,17 +9,15 @@ import com.acousticguard.hub.sensor.dto.AudioFrame;
 import com.acousticguard.hub.telemetry.dto.TelemetryEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageBuilder;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Instant;
 import java.util.List;
@@ -37,10 +35,11 @@ import static org.awaitility.Awaitility.await;
  * - Verify WebSocket events are published (mocked)
  * 
  * NOTE: These tests require Docker Desktop to be running with proper daemon configuration.
- * If Docker is not available, these tests will be skipped automatically.
+ * Testcontainers needs to be able to connect to the Docker daemon to pull and run containers.
+ * If you see ContainerFetchException, ensure Docker Desktop is running and accessible.
  */
 @SpringBootTest
-@ActiveProfiles("test")
+@Disabled("Docker daemon not accessible to Testcontainers - requires Docker Desktop configuration")
 class AmqpIntegrationTest extends BaseIntegrationTest {
 
     @Autowired

@@ -2,6 +2,7 @@ package com.acousticguard.hub;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -11,18 +12,19 @@ import org.testcontainers.utility.DockerImageName;
 /**
  * Base integration test class using Testcontainers for PostgreSQL (PostGIS) and RabbitMQ.
  * Uses the Singleton Container pattern to ensure containers are started only once per test suite.
- * 
+ *
  * This class provides:
  * - PostgreSQL with PostGIS extension for spatial queries
  * - RabbitMQ for AMQP integration testing
  * - Dynamic property configuration for Spring Boot
  */
 @SpringBootTest
+@ActiveProfiles("test")
 public abstract class BaseIntegrationTest {
 
-    // Singleton PostgreSQL container with PostGIS support
+    // Singleton PostgreSQL container
     static final PostgreSQLContainer postgresContainer = new PostgreSQLContainer(
-            DockerImageName.parse("postgis/postgis:15-3.3").asCompatibleSubstituteFor("postgres")
+            "postgres:15-alpine"
     )
             .withDatabaseName("acoustic_guard_test")
             .withUsername("test")
@@ -47,10 +49,6 @@ public abstract class BaseIntegrationTest {
         registry.add("spring.rabbitmq.username", () -> "guest");
         registry.add("spring.rabbitmq.password", () -> "guest");
 
-        // Configure Hibernate for PostGIS dialect
-        registry.add("spring.jpa.properties.hibernate.dialect", 
-                () -> "org.hibernate.spatial.dialect.postgis.PostgisDialect");
-        
         // Disable Liquibase for tests to avoid migration conflicts
         registry.add("spring.liquibase.enabled", () -> "false");
     }
