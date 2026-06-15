@@ -40,5 +40,6 @@ public interface SensorMapper {
      * @param latency the new latency value in milliseconds
      * @return a new SensorNodeResponseDto with updated latency
      */
+    @org.mapstruct.Mapping(target = "latencyMs", source = "latency")
     SensorNodeResponseDto updateLatency(SensorNodeResponseDto dto, Integer latency);
 }
