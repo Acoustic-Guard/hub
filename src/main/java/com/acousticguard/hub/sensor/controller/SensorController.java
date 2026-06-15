@@ -2,7 +2,7 @@ package com.acousticguard.hub.sensor.controller;
 
 import com.acousticguard.hub.sensor.mapper.SensorMapper;
 import com.acousticguard.hub.sensor.model.Sensor;
-import com.acousticguard.hub.sensor.service.SensorMonitorService;
+import com.acousticguard.hub.sensor.service.SensorRegistryService;
 import com.acousticguard.hub.telemetry.dto.SensorNodeResponseDto;
 import com.acousticguard.hub.telemetry.service.TelemetryService;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SensorController {
 
-    private final SensorMonitorService sensorMonitorService;
+    private final SensorRegistryService sensorRegistryService;
     private final SensorMapper sensorMapper;
     private final TelemetryService telemetryService;
 
@@ -33,25 +33,14 @@ public class SensorController {
      */
     @GetMapping
     public ResponseEntity<List<SensorNodeResponseDto>> getAllNodes() {
-        List<Sensor> sensors = sensorMonitorService.getAllSensors();
+        List<Sensor> sensors = sensorRegistryService.getAllSensors();
         List<SensorNodeResponseDto> nodes = sensors.stream()
                 .map(sensor -> {
                     var dto = sensorMapper.toDto(sensor);
                     // Add latency from telemetry if available
                     Long latency = telemetryService.getSensorLatency(sensor.getId());
                     if (latency != null) {
-                        dto = new SensorNodeResponseDto(
-                            dto.id(),
-                            dto.location(),
-                            dto.status(),
-                            latency.intValue(),
-                            dto.uptimePercent(),
-                            dto.lastHeartbeat(),
-                            dto.latitude(),
-                            dto.longitude(),
-                            dto.firmwareVersion(),
-                            dto.metadata()
-                        );
+                        dto = sensorMapper.updateLatency(dto, latency.intValue());
                     }
                     return dto;
                 })

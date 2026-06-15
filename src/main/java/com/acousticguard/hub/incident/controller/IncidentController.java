@@ -1,5 +1,6 @@
 package com.acousticguard.hub.incident.controller;
 
+import com.acousticguard.hub.common.domain.BoundingBox;
 import com.acousticguard.hub.incident.dto.IncidentResponseDto;
 import com.acousticguard.hub.incident.mapper.IncidentMapper;
 import com.acousticguard.hub.incident.service.IncidentService;
@@ -53,25 +54,19 @@ public class IncidentController {
             return ResponseEntity.ok(allIncidents);
         }
 
-        String[] coords = bbox.split(",");
-        if (coords.length != 4) {
-            return ResponseEntity.badRequest().build();
-        }
-
         try {
-            float minLng = Float.parseFloat(coords[0].trim());
-            float minLat = Float.parseFloat(coords[1].trim());
-            float maxLng = Float.parseFloat(coords[2].trim());
-            float maxLat = Float.parseFloat(coords[3].trim());
-
-            List<IncidentResponseDto> bboxIncidents = incidentService.findActiveWithinBbox(minLat, maxLat, minLng, maxLng)
+            BoundingBox boundingBox = BoundingBox.fromString(bbox);
+            List<IncidentResponseDto> bboxIncidents = incidentService.findActiveWithinBbox(
+                    boundingBox.minLat(), boundingBox.maxLat(),
+                    boundingBox.minLng(), boundingBox.maxLng()
+            )
                     .stream()
                     .map(incidentMapper::toDto)
                     .toList();
 
             return ResponseEntity.ok(bboxIncidents);
 
-        } catch (NumberFormatException e) {
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }
     }

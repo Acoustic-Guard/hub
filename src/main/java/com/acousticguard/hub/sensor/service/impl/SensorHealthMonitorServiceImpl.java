@@ -1,0 +1,90 @@
+package com.acousticguard.hub.sensor.service.impl;
+
+import com.acousticguard.hub.common.enums.SensorStatus;
+import com.acousticguard.hub.sensor.mapper.SensorMapper;
+import com.acousticguard.hub.sensor.model.Sensor;
+import com.acousticguard.hub.sensor.repository.SensorRepository;
+import com.acousticguard.hub.sensor.service.SensorHealthMonitorService;
+import com.acousticguard.hub.telemetry.service.TelemetryService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+/**
+ * Implementation of SensorHealthMonitorService.
+ * Handles heartbeat tracking and scheduled offline sensor checking.
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class SensorHealthMonitorServiceImpl implements SensorHealthMonitorService {
+
+    private final SensorRepository sensorRepository;
+    private final TelemetryService telemetryService;
+    private final com.acousticguard.hub.websocket.EventPublisherPort eventPublisherPort;
+    private final SensorMapper sensorMapper;
+
+    @Value("${acoustic.sensor.heartbeat-timeout-seconds:60}")
+    private long heartbeatTimeoutSeconds;
+
+    @Override
+    public void updateHeartbeat(String sensorId) {
+        // Heartbeat is now tracked in-memory via TelemetryService
+        // No DB write needed
+        log.debug("Heartbeat tracked in-memory for sensor {}", sensorId);
+    }
+
+    @Override
+    @Scheduled(fixedRate = 5000)
+    @Transactional
+    public List<Sensor> checkOfflineSensors() {
+        List<Sensor> allSensors = sensorRepository.findAll();
+        List<Sensor> offlineSensors = new java.util.ArrayList<>();
+
+        for (Sensor sensor : allSensors) {
+            SensorStatus currentStatus = telemetryService.getSensorStatus(sensor.getId());
+
+            if (currentStatus == SensorStatus.OFFLINE && sensor.getStatus() != SensorStatus.OFFLINE) {
+                sensor.setStatus(SensorStatus.OFFLINE);
+                sensorRepository.save(sensor);
+                offlineSensors.add(sensor);
+                log.warn("Sensor {} marked as offline", sensor.getId());
+                
+                // Get DTO and update with latency (null for offline)
+                var dto = sensorMapper.toDto(sensor);
+                eventPublisherPort.publishSensorStatus(dto);
+            } else if (currentStatus == SensorStatus.ONLINE && sensor.getStatus() != SensorStatus.ONLINE) {
+                sensor.setStatus(SensorStatus.ONLINE);
+                sensorRepository.save(sensor);
+                log.info("Sensor {} marked as online", sensor.getId());
+                
+                // Get DTO and update with latency from telemetry
+                var dto = sensorMapper.toDto(sensor);
+                Long latency = telemetryService.getSensorLatency(sensor.getId());
+                if (dto.latencyMs() == null && latency != null) {
+                    // Create new DTO with latency (since records are immutable)
+                    dto = new com.acousticguard.hub.telemetry.dto.SensorNodeResponseDto(
+                        dto.id(),
+                        dto.location(),
+                        dto.status(),
+                        latency.intValue(),
+                        dto.uptimePercent(),
+                        dto.lastHeartbeat(),
+                        dto.latitude(),
+                        dto.longitude(),
+                        dto.firmwareVersion(),
+                        dto.metadata()
+                    );
+                }
+                eventPublisherPort.publishSensorStatus(dto);
+            }
+        }
+
+        return offlineSensors;
+    }
+}
