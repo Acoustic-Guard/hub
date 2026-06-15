@@ -3,6 +3,7 @@ package com.acousticguard.hub.telemetry.service.impl;
 import com.acousticguard.hub.common.enums.SensorStatus;
 import com.acousticguard.hub.common.enums.SystemStatus;
 import com.acousticguard.hub.monitoring.MessageLoadMonitor;
+import com.acousticguard.hub.telemetry.dto.SensorNodeResponseDto;
 import com.acousticguard.hub.telemetry.dto.TelemetryEvent;
 import com.acousticguard.hub.telemetry.dto.TelemetryResponseDto;
 import com.acousticguard.hub.telemetry.service.TelemetryService;
@@ -85,11 +86,37 @@ public class TelemetryServiceImpl implements TelemetryService {
                 Instant.now()
         );
 
+        // Check if sensor was previously offline (not in the map)
+        boolean wasOffline = !nodeStates.containsKey(event.sensorId());
+
         // Update the thread-safe cache
         nodeStates.put(event.sensorId(), state);
 
         log.debug("Telemetry updated for sensor {}: {} dB (display), {} ms latency",
                 event.sensorId(), displayDb, latencyMs);
+
+        // If sensor was previously offline, publish ONLINE status update immediately
+        if (wasOffline) {
+            log.info("Sensor {} recovered from offline. Publishing ONLINE status update.", event.sensorId());
+            try {
+                // Publish sensor recovery event to /topic/sensors
+                SensorNodeResponseDto recoveryEvent = new SensorNodeResponseDto(
+                        event.sensorId(),
+                        null, // location - not available from telemetry
+                        SensorStatus.ONLINE,
+                        (int) latencyMs,
+                        null, // uptimePercent - not available from telemetry
+                        Instant.now(),
+                        event.latitude(),
+                        event.longitude(),
+                        null, // firmwareVersion - not available from telemetry
+                        null  // metadata - not available from telemetry
+                );
+                simpMessagingTemplate.convertAndSend("/topic/sensors", recoveryEvent);
+            } catch (Exception e) {
+                log.error("Failed to publish sensor recovery event for sensor {}", event.sensorId(), e);
+            }
+        }
 
         // Delegate persistence to the adapter.
         // This call crosses the class boundary, triggering the @Transactional proxy correctly.
