@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Integration tests for IncidentRepository using Testcontainers with PostgreSQL.
  * Tests custom spatial queries and JPA repository methods.
- * 
+ * <p>
  * NOTE: These tests require Docker Desktop to be running with proper daemon configuration.
  * Testcontainers needs to be able to connect to the Docker daemon to pull and run containers.
  * If you see ContainerFetchException, ensure Docker Desktop is running and accessible.
@@ -43,6 +43,22 @@ class IncidentRepositoryIntegrationTest extends BaseIntegrationTest {
         incidentRepository.deleteAll();
     }
 
+    // Helper methods
+    private Incident createIncident(float latitude, float longitude, String status) {
+        Point location = geometryFactory.createPoint(new Coordinate(longitude, latitude));
+        return Incident.builder()
+                .id(UUID.randomUUID())
+                .locationGeo(location)
+                .type("Explosion")
+                .intensity(0.7f)
+                .status(status)
+                .sensorId("sensor-1")
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .metadata(java.util.Map.of("alertCount", 1))
+                .build();
+    }
+
     @Nested
     @DisplayName("When finding nearby active incidents")
     class WhenFindingNearbyActiveIncidents {
@@ -55,7 +71,7 @@ class IncidentRepositoryIntegrationTest extends BaseIntegrationTest {
             Incident nearbyIncident = createIncident(48.5f, 35.5f, IncidentStatus.DETECTED.getValue());
             Incident farIncident = createIncident(49.0f, 36.0f, IncidentStatus.DETECTED.getValue());
             Incident resolvedIncident = createIncident(48.5f, 35.51f, IncidentStatus.RESOLVED.getValue());
-            
+
             incidentRepository.save(nearbyIncident);
             incidentRepository.save(farIncident);
             incidentRepository.save(resolvedIncident);
@@ -133,10 +149,10 @@ class IncidentRepositoryIntegrationTest extends BaseIntegrationTest {
             // Arrange
             Incident explosionIncident = createIncident(48.5f, 35.5f, IncidentStatus.DETECTED.getValue());
             explosionIncident.setType("Explosion");
-            
+
             Incident uavIncident = createIncident(48.51f, 35.51f, IncidentStatus.DETECTED.getValue());
             uavIncident.setType("UAV");
-            
+
             incidentRepository.save(explosionIncident);
             incidentRepository.save(uavIncident);
 
@@ -164,7 +180,7 @@ class IncidentRepositoryIntegrationTest extends BaseIntegrationTest {
             Incident detectedIncident = createIncident(48.5f, 35.5f, IncidentStatus.DETECTED.getValue());
             Incident investigatingIncident = createIncident(48.6f, 35.6f, IncidentStatus.INVESTIGATING.getValue());
             Incident resolvedIncident = createIncident(48.7f, 35.7f, IncidentStatus.RESOLVED.getValue());
-            
+
             incidentRepository.save(detectedIncident);
             incidentRepository.save(investigatingIncident);
             incidentRepository.save(resolvedIncident);
@@ -183,7 +199,7 @@ class IncidentRepositoryIntegrationTest extends BaseIntegrationTest {
             // Arrange
             Incident resolvedIncident1 = createIncident(48.5f, 35.5f, IncidentStatus.RESOLVED.getValue());
             Incident resolvedIncident2 = createIncident(48.6f, 35.6f, IncidentStatus.RESOLVED.getValue());
-            
+
             incidentRepository.save(resolvedIncident1);
             incidentRepository.save(resolvedIncident2);
 
@@ -206,7 +222,7 @@ class IncidentRepositoryIntegrationTest extends BaseIntegrationTest {
             Incident insideIncident1 = createIncident(48.5f, 35.5f, IncidentStatus.DETECTED.getValue());
             Incident insideIncident2 = createIncident(48.6f, 35.6f, IncidentStatus.DETECTED.getValue());
             Incident outsideIncident = createIncident(49.0f, 36.0f, IncidentStatus.DETECTED.getValue());
-            
+
             incidentRepository.save(insideIncident1);
             incidentRepository.save(insideIncident2);
             incidentRepository.save(outsideIncident);
@@ -238,7 +254,7 @@ class IncidentRepositoryIntegrationTest extends BaseIntegrationTest {
             // Arrange
             Incident activeIncident = createIncident(48.5f, 35.5f, IncidentStatus.DETECTED.getValue());
             Incident resolvedIncident = createIncident(48.6f, 35.6f, IncidentStatus.RESOLVED.getValue());
-            
+
             incidentRepository.save(activeIncident);
             incidentRepository.save(resolvedIncident);
 
@@ -309,21 +325,5 @@ class IncidentRepositoryIntegrationTest extends BaseIntegrationTest {
             assertThat(retrieved.getMetadata()).isNotNull();
             assertThat(retrieved.getMetadata().get("alertCount")).isEqualTo(5);
         }
-    }
-
-    // Helper methods
-    private Incident createIncident(float latitude, float longitude, String status) {
-        Point location = geometryFactory.createPoint(new Coordinate(longitude, latitude));
-        return Incident.builder()
-                .id(UUID.randomUUID())
-                .locationGeo(location)
-                .type("Explosion")
-                .intensity(0.7f)
-                .status(status)
-                .sensorId("sensor-1")
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .metadata(java.util.Map.of("alertCount", 1))
-                .build();
     }
 }

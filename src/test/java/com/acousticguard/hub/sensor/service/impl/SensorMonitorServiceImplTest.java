@@ -20,13 +20,13 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SensorMonitorService Tests")
@@ -50,6 +50,35 @@ class SensorMonitorServiceImplTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(sensorMonitorService, "heartbeatTimeoutSeconds", 60L);
+    }
+
+    // Helper methods
+    private Sensor createSensor(String id, SensorStatus status) {
+        return Sensor.builder()
+                .id(id)
+                .location("Test Location")
+                .latitude(48.5f)
+                .longitude(35.5f)
+                .status(status)
+                .currentAvgDb(50.0f)
+                .lastHeartbeat(Instant.now())
+                .noiseUpdatedAt(Instant.now())
+                .build();
+    }
+
+    private SensorNodeResponseDto createSensorDto(String id, SensorStatus status) {
+        return new SensorNodeResponseDto(
+                id,
+                "Test Location",
+                status,
+                null,
+                null,
+                Instant.now(),
+                48.5f,
+                35.5f,
+                null,
+                null
+        );
     }
 
     @Nested
@@ -156,7 +185,7 @@ class SensorMonitorServiceImplTest {
             Sensor sensor1 = createSensor("sensor-1", SensorStatus.ONLINE);
             Sensor sensor2 = createSensor("sensor-2", SensorStatus.ONLINE);
             Sensor sensor3 = createSensor("sensor-3", SensorStatus.ONLINE);
-            
+
             when(sensorRepository.findAll()).thenReturn(List.of(sensor1, sensor2, sensor3));
             when(telemetryService.getSensorStatus("sensor-1")).thenReturn(SensorStatus.OFFLINE);
             when(telemetryService.getSensorStatus("sensor-2")).thenReturn(SensorStatus.ONLINE);
@@ -205,34 +234,5 @@ class SensorMonitorServiceImplTest {
             // Assert - Method is annotated with @Transactional(readOnly = true)
             // This is verified by the annotation on the method
         }
-    }
-
-    // Helper methods
-    private Sensor createSensor(String id, SensorStatus status) {
-        return Sensor.builder()
-                .id(id)
-                .location("Test Location")
-                .latitude(48.5f)
-                .longitude(35.5f)
-                .status(status)
-                .currentAvgDb(50.0f)
-                .lastHeartbeat(Instant.now())
-                .noiseUpdatedAt(Instant.now())
-                .build();
-    }
-
-    private SensorNodeResponseDto createSensorDto(String id, SensorStatus status) {
-        return new SensorNodeResponseDto(
-                id,
-                "Test Location",
-                status,
-                null,
-                null,
-                Instant.now(),
-                48.5f,
-                35.5f,
-                null,
-                null
-        );
     }
 }

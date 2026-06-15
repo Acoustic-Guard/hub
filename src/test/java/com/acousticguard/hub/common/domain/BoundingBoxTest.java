@@ -22,7 +22,7 @@ class BoundingBoxTest {
         @DisplayName("Should parse valid bounding box string")
         void shouldParseValidBoundingBoxString() {
             BoundingBox bbox = BoundingBox.fromString("-122.5,37.7,-122.3,37.9");
-            
+
             assertThat(bbox.minLng()).isEqualTo(-122.5f);
             assertThat(bbox.minLat()).isEqualTo(37.7f);
             assertThat(bbox.maxLng()).isEqualTo(-122.3f);
@@ -33,7 +33,7 @@ class BoundingBoxTest {
         @DisplayName("Should parse bounding box with whitespace")
         void shouldParseBoundingBoxWithWhitespace() {
             BoundingBox bbox = BoundingBox.fromString(" -122.5 , 37.7 , -122.3 , 37.9 ");
-            
+
             assertThat(bbox.minLng()).isEqualTo(-122.5f);
             assertThat(bbox.minLat()).isEqualTo(37.7f);
             assertThat(bbox.maxLng()).isEqualTo(-122.3f);
@@ -137,7 +137,7 @@ class BoundingBoxTest {
         @DisplayName("Should accept equal min and max coordinates")
         void shouldAcceptEqualMinAndMaxCoordinates() {
             BoundingBox bbox = BoundingBox.fromString("-122.5,37.7,-122.5,37.7");
-            
+
             assertThat(bbox.minLng()).isEqualTo(-122.5f);
             assertThat(bbox.minLat()).isEqualTo(37.7f);
             assertThat(bbox.maxLng()).isEqualTo(-122.5f);
@@ -148,7 +148,7 @@ class BoundingBoxTest {
         @DisplayName("Should accept boundary values")
         void shouldAcceptBoundaryValues() {
             BoundingBox bbox = BoundingBox.fromString("-180,-90,180,90");
-            
+
             assertThat(bbox.minLng()).isEqualTo(-180f);
             assertThat(bbox.minLat()).isEqualTo(-90f);
             assertThat(bbox.maxLng()).isEqualTo(180f);

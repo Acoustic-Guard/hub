@@ -34,7 +34,7 @@ public class AudioFrameConsumer {
     public void receiveFrame(Message message) {
         try {
             messageLoadMonitor.incrementMessageCount();
-            
+
             AudioFrame frame = objectMapper.readValue(message.getBody(), AudioFrame.class);
 
             // Process the frame for threat detection

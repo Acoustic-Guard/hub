@@ -33,7 +33,7 @@ public class TelemetryConsumer {
     public void receiveTelemetry(Message message) {
         try {
             messageLoadMonitor.incrementMessageCount();
-            
+
             TelemetryEvent event = objectMapper.readValue(message.getBody(), TelemetryEvent.class);
 
             // Update telemetry for noise map

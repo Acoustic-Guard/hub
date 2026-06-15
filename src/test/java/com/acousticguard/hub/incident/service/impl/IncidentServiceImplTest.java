@@ -15,7 +15,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -29,8 +28,8 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("IncidentService Tests")
@@ -55,6 +54,114 @@ class IncidentServiceImplTest {
         geometryFactory = new GeometryFactory();
         ReflectionTestUtils.setField(incidentService, "spatialThresholdMeters", 500.0);
         ReflectionTestUtils.setField(incidentService, "temporalThresholdSeconds", 300L);
+    }
+
+    @TestFactory
+    @DisplayName("Dynamic tests for intensity-based status transitions")
+    Stream<org.junit.jupiter.api.DynamicTest> intensityStatusTransitions() {
+        return Stream.of(
+                org.junit.jupiter.api.DynamicTest.dynamicTest(
+                        "Intensity 0.7 should remain DETECTED",
+                        () -> {
+                            Alert alert = createAlert("sensor-1", 48.5f, 35.5f, 0.7f);
+                            Incident existingIncident = createIncident(UUID.randomUUID(), 48.5f, 35.5f, 0.6f, IncidentStatus.DETECTED.getValue());
+
+                            when(incidentRepository.findNearbyActiveIncidents(
+                                    any(Double.class), any(Double.class), any(Double.class),
+                                    any(String.class), any(Instant.class)
+                            )).thenReturn(List.of(existingIncident));
+                            when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> invocation.getArgument(0));
+                            when(incidentMapper.toDto(any(Incident.class))).thenReturn(null);
+
+                            Incident result = incidentService.aggregateOrUpdate(alert);
+                            assertThat(result.getStatus()).isEqualTo(IncidentStatus.DETECTED.getValue());
+                        }
+                ),
+                org.junit.jupiter.api.DynamicTest.dynamicTest(
+                        "Intensity 0.8 should transition to INVESTIGATING",
+                        () -> {
+                            Alert alert = createAlert("sensor-1", 48.5f, 35.5f, 0.8f);
+                            Incident existingIncident = createIncident(UUID.randomUUID(), 48.5f, 35.5f, 0.7f, IncidentStatus.DETECTED.getValue());
+
+                            when(incidentRepository.findNearbyActiveIncidents(
+                                    any(Double.class), any(Double.class), any(Double.class),
+                                    any(String.class), any(Instant.class)
+                            )).thenReturn(List.of(existingIncident));
+                            when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> invocation.getArgument(0));
+                            when(incidentMapper.toDto(any(Incident.class))).thenReturn(null);
+
+                            Incident result = incidentService.aggregateOrUpdate(alert);
+                            assertThat(result.getStatus()).isEqualTo(IncidentStatus.INVESTIGATING.getValue());
+                        }
+                ),
+                org.junit.jupiter.api.DynamicTest.dynamicTest(
+                        "Intensity 0.9 should transition to CONFIRMED",
+                        () -> {
+                            Alert alert = createAlert("sensor-1", 48.5f, 35.5f, 0.9f);
+                            Incident existingIncident = createIncident(UUID.randomUUID(), 48.5f, 35.5f, 0.8f, IncidentStatus.INVESTIGATING.getValue());
+
+                            when(incidentRepository.findNearbyActiveIncidents(
+                                    any(Double.class), any(Double.class), any(Double.class),
+                                    any(String.class), any(Instant.class)
+                            )).thenReturn(List.of(existingIncident));
+                            when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> invocation.getArgument(0));
+                            when(incidentMapper.toDto(any(Incident.class))).thenReturn(null);
+
+                            Incident result = incidentService.aggregateOrUpdate(alert);
+                            assertThat(result.getStatus()).isEqualTo(IncidentStatus.CONFIRMED.getValue());
+                        }
+                ),
+                org.junit.jupiter.api.DynamicTest.dynamicTest(
+                        "Intensity 1.0 should transition to CONFIRMED",
+                        () -> {
+                            Alert alert = createAlert("sensor-1", 48.5f, 35.5f, 1.0f);
+                            Incident existingIncident = createIncident(UUID.randomUUID(), 48.5f, 35.5f, 0.9f, IncidentStatus.INVESTIGATING.getValue());
+
+                            when(incidentRepository.findNearbyActiveIncidents(
+                                    any(Double.class), any(Double.class), any(Double.class),
+                                    any(String.class), any(Instant.class)
+                            )).thenReturn(List.of(existingIncident));
+                            when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> invocation.getArgument(0));
+                            when(incidentMapper.toDto(any(Incident.class))).thenReturn(null);
+
+                            Incident result = incidentService.aggregateOrUpdate(alert);
+                            assertThat(result.getStatus()).isEqualTo(IncidentStatus.CONFIRMED.getValue());
+                        }
+                )
+        );
+    }
+
+    // Helper methods
+    private Alert createAlert(String sensorId, float latitude, float longitude, float confidence) {
+        Alert alert = new Alert();
+        alert.setId(UUID.randomUUID());
+        alert.setSensorId(sensorId);
+        alert.setThreatType("Explosion");
+        alert.setConfidence(confidence);
+        alert.setDetectedAt(Instant.now());
+        alert.setLocation(String.format("%.6f,%.6f", latitude, longitude));
+        alert.setLocationGeo(createPoint(latitude, longitude));
+        return alert;
+    }
+
+    private Incident createIncident(UUID id, float latitude, float longitude, float intensity, String status) {
+        java.util.Map<String, Object> metadata = new java.util.HashMap<>();
+        metadata.put("alertCount", 1);
+        return Incident.builder()
+                .id(id)
+                .locationGeo(createPoint(latitude, longitude))
+                .type("Explosion")
+                .intensity(intensity)
+                .status(status)
+                .sensorId("sensor-1")
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .metadata(metadata)
+                .build();
+    }
+
+    private Point createPoint(float latitude, float longitude) {
+        return geometryFactory.createPoint(new Coordinate(longitude, latitude));
     }
 
     @Nested
@@ -126,7 +233,7 @@ class IncidentServiceImplTest {
                 // Arrange
                 Alert alert = createAlert("sensor-1", 48.5f, 35.5f, 0.85f);
                 Incident existingIncident = createIncident(UUID.randomUUID(), 48.5f, 35.5f, 0.7f, IncidentStatus.DETECTED.getValue());
-                
+
                 when(incidentRepository.findNearbyActiveIncidents(
                         any(Double.class), any(Double.class), any(Double.class),
                         any(String.class), any(Instant.class)
@@ -150,7 +257,7 @@ class IncidentServiceImplTest {
                 // Arrange
                 Alert alert = createAlert("sensor-1", 48.5f, 35.5f, 0.95f);
                 Incident existingIncident = createIncident(UUID.randomUUID(), 48.5f, 35.5f, 0.8f, IncidentStatus.INVESTIGATING.getValue());
-                
+
                 when(incidentRepository.findNearbyActiveIncidents(
                         any(Double.class), any(Double.class), any(Double.class),
                         any(String.class), any(Instant.class)
@@ -173,7 +280,7 @@ class IncidentServiceImplTest {
                 Alert alert = createAlert("sensor-1", 48.5f, 35.5f, 0.85f);
                 Incident existingIncident = createIncident(UUID.randomUUID(), 48.5f, 35.5f, 0.7f, IncidentStatus.DETECTED.getValue());
                 existingIncident.getMetadata().put("alertCount", 3);
-                
+
                 when(incidentRepository.findNearbyActiveIncidents(
                         any(Double.class), any(Double.class), any(Double.class),
                         any(String.class), any(Instant.class)
@@ -202,9 +309,9 @@ class IncidentServiceImplTest {
             // Arrange
             Incident activeIncident = createIncident(UUID.randomUUID(), 48.5f, 35.5f, 0.7f, IncidentStatus.INVESTIGATING.getValue());
             Incident resolvedIncident = createIncident(UUID.randomUUID(), 48.6f, 35.6f, 0.8f, IncidentStatus.RESOLVED.getValue());
-            
+
             when(incidentRepository.findByStatusNot(IncidentStatus.RESOLVED.getValue()))
-                        .thenReturn(List.of(activeIncident, resolvedIncident));
+                    .thenReturn(List.of(activeIncident, resolvedIncident));
 
             // Act
             List<Incident> result = incidentService.findAllActive();
@@ -225,7 +332,7 @@ class IncidentServiceImplTest {
             // Arrange
             UUID incidentId = UUID.randomUUID();
             Incident existingIncident = createIncident(incidentId, 48.5f, 35.5f, 0.7f, IncidentStatus.INVESTIGATING.getValue());
-            
+
             when(incidentRepository.findById(incidentId)).thenReturn(Optional.of(existingIncident));
             when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> invocation.getArgument(0));
             when(incidentMapper.toDto(any(Incident.class))).thenReturn(null);
@@ -266,7 +373,7 @@ class IncidentServiceImplTest {
             float maxLat = 49.0f;
             float minLng = 35.0f;
             float maxLng = 36.0f;
-            
+
             when(incidentRepository.findActiveWithinBbox(minLng, minLat, maxLng, maxLat))
                     .thenReturn(List.of());
 
@@ -276,113 +383,5 @@ class IncidentServiceImplTest {
             // Assert
             verify(incidentRepository).findActiveWithinBbox(minLng, minLat, maxLng, maxLat);
         }
-    }
-
-    @TestFactory
-    @DisplayName("Dynamic tests for intensity-based status transitions")
-    Stream<org.junit.jupiter.api.DynamicTest> intensityStatusTransitions() {
-        return Stream.of(
-                org.junit.jupiter.api.DynamicTest.dynamicTest(
-                        "Intensity 0.7 should remain DETECTED",
-                        () -> {
-                            Alert alert = createAlert("sensor-1", 48.5f, 35.5f, 0.7f);
-                            Incident existingIncident = createIncident(UUID.randomUUID(), 48.5f, 35.5f, 0.6f, IncidentStatus.DETECTED.getValue());
-                            
-                            when(incidentRepository.findNearbyActiveIncidents(
-                                    any(Double.class), any(Double.class), any(Double.class),
-                                    any(String.class), any(Instant.class)
-                            )).thenReturn(List.of(existingIncident));
-                            when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> invocation.getArgument(0));
-                            when(incidentMapper.toDto(any(Incident.class))).thenReturn(null);
-
-                            Incident result = incidentService.aggregateOrUpdate(alert);
-                            assertThat(result.getStatus()).isEqualTo(IncidentStatus.DETECTED.getValue());
-                        }
-                ),
-                org.junit.jupiter.api.DynamicTest.dynamicTest(
-                        "Intensity 0.8 should transition to INVESTIGATING",
-                        () -> {
-                            Alert alert = createAlert("sensor-1", 48.5f, 35.5f, 0.8f);
-                            Incident existingIncident = createIncident(UUID.randomUUID(), 48.5f, 35.5f, 0.7f, IncidentStatus.DETECTED.getValue());
-                            
-                            when(incidentRepository.findNearbyActiveIncidents(
-                                    any(Double.class), any(Double.class), any(Double.class),
-                                    any(String.class), any(Instant.class)
-                            )).thenReturn(List.of(existingIncident));
-                            when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> invocation.getArgument(0));
-                            when(incidentMapper.toDto(any(Incident.class))).thenReturn(null);
-
-                            Incident result = incidentService.aggregateOrUpdate(alert);
-                            assertThat(result.getStatus()).isEqualTo(IncidentStatus.INVESTIGATING.getValue());
-                        }
-                ),
-                org.junit.jupiter.api.DynamicTest.dynamicTest(
-                        "Intensity 0.9 should transition to CONFIRMED",
-                        () -> {
-                            Alert alert = createAlert("sensor-1", 48.5f, 35.5f, 0.9f);
-                            Incident existingIncident = createIncident(UUID.randomUUID(), 48.5f, 35.5f, 0.8f, IncidentStatus.INVESTIGATING.getValue());
-                            
-                            when(incidentRepository.findNearbyActiveIncidents(
-                                    any(Double.class), any(Double.class), any(Double.class),
-                                    any(String.class), any(Instant.class)
-                            )).thenReturn(List.of(existingIncident));
-                            when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> invocation.getArgument(0));
-                            when(incidentMapper.toDto(any(Incident.class))).thenReturn(null);
-
-                            Incident result = incidentService.aggregateOrUpdate(alert);
-                            assertThat(result.getStatus()).isEqualTo(IncidentStatus.CONFIRMED.getValue());
-                        }
-                ),
-                org.junit.jupiter.api.DynamicTest.dynamicTest(
-                        "Intensity 1.0 should transition to CONFIRMED",
-                        () -> {
-                            Alert alert = createAlert("sensor-1", 48.5f, 35.5f, 1.0f);
-                            Incident existingIncident = createIncident(UUID.randomUUID(), 48.5f, 35.5f, 0.9f, IncidentStatus.INVESTIGATING.getValue());
-                            
-                            when(incidentRepository.findNearbyActiveIncidents(
-                                    any(Double.class), any(Double.class), any(Double.class),
-                                    any(String.class), any(Instant.class)
-                            )).thenReturn(List.of(existingIncident));
-                            when(incidentRepository.save(any(Incident.class))).thenAnswer(invocation -> invocation.getArgument(0));
-                            when(incidentMapper.toDto(any(Incident.class))).thenReturn(null);
-
-                            Incident result = incidentService.aggregateOrUpdate(alert);
-                            assertThat(result.getStatus()).isEqualTo(IncidentStatus.CONFIRMED.getValue());
-                        }
-                )
-        );
-    }
-
-    // Helper methods
-    private Alert createAlert(String sensorId, float latitude, float longitude, float confidence) {
-        Alert alert = new Alert();
-        alert.setId(UUID.randomUUID());
-        alert.setSensorId(sensorId);
-        alert.setThreatType("Explosion");
-        alert.setConfidence(confidence);
-        alert.setDetectedAt(Instant.now());
-        alert.setLocation(String.format("%.6f,%.6f", latitude, longitude));
-        alert.setLocationGeo(createPoint(latitude, longitude));
-        return alert;
-    }
-
-    private Incident createIncident(UUID id, float latitude, float longitude, float intensity, String status) {
-        java.util.Map<String, Object> metadata = new java.util.HashMap<>();
-        metadata.put("alertCount", 1);
-        return Incident.builder()
-                .id(id)
-                .locationGeo(createPoint(latitude, longitude))
-                .type("Explosion")
-                .intensity(intensity)
-                .status(status)
-                .sensorId("sensor-1")
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .metadata(metadata)
-                .build();
-    }
-
-    private Point createPoint(float latitude, float longitude) {
-        return geometryFactory.createPoint(new Coordinate(longitude, latitude));
     }
 }

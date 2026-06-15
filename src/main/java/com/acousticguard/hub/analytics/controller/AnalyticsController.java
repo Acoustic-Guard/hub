@@ -25,7 +25,7 @@ public class AnalyticsController {
     @GetMapping
     @Operation(summary = "Get analytics data", description = "Retrieve analytics statistics for incidents and alerts")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved analytics data")
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved analytics data")
     })
     public ResponseEntity<AnalyticsResponseDto> getAnalytics(
             @Parameter(description = "Time range (e.g., 24h, 7d)")

@@ -3,7 +3,6 @@ package com.acousticguard.hub.sensor.service.impl;
 import com.acousticguard.hub.common.enums.SensorStatus;
 import com.acousticguard.hub.sensor.model.Sensor;
 import com.acousticguard.hub.sensor.repository.SensorRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -28,6 +27,20 @@ class SensorRegistryServiceTest {
 
     @InjectMocks
     private SensorRegistryServiceImpl sensorRegistryService;
+
+    // Helper methods
+    private Sensor createSensor(String id, SensorStatus status) {
+        return Sensor.builder()
+                .id(id)
+                .location("Test Location")
+                .latitude(48.5f)
+                .longitude(35.5f)
+                .status(status)
+                .currentAvgDb(50.0f)
+                .lastHeartbeat(Instant.now())
+                .noiseUpdatedAt(Instant.now())
+                .build();
+    }
 
     @Nested
     @DisplayName("When getting all sensors")
@@ -61,19 +74,5 @@ class SensorRegistryServiceTest {
             // Assert - Method is annotated with @Transactional(readOnly = true)
             // This is verified by the annotation on the method
         }
-    }
-
-    // Helper methods
-    private Sensor createSensor(String id, SensorStatus status) {
-        return Sensor.builder()
-                .id(id)
-                .location("Test Location")
-                .latitude(48.5f)
-                .longitude(35.5f)
-                .status(status)
-                .currentAvgDb(50.0f)
-                .lastHeartbeat(Instant.now())
-                .noiseUpdatedAt(Instant.now())
-                .build();
     }
 }

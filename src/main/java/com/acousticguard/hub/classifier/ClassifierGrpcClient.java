@@ -29,8 +29,8 @@ public class ClassifierGrpcClient implements ClassifierClient {
                     .setSampleRateHz(frame.sampleRateHz())
                     .setPeakDb(frame.peakDb() != null ? frame.peakDb() : 0.0f)
                     .setAvgDb(frame.avgDb() != null ? frame.avgDb() : 0.0f)
-                    .addAllRawAudio(frame.rawAudio() != null ? 
-                            frame.rawAudio().stream().map(Integer::valueOf).toList() : 
+                    .addAllRawAudio(frame.rawAudio() != null ?
+                            frame.rawAudio().stream().map(Integer::valueOf).toList() :
                             java.util.List.of())
                     .build();
 

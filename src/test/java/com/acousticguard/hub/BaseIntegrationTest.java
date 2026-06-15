@@ -5,14 +5,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.containers.RabbitMQContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 /**
  * Base integration test class using Testcontainers for PostgreSQL (PostGIS) and RabbitMQ.
  * Uses the Singleton Container pattern to ensure containers are started only once per test suite.
- *
+ * <p>
  * This class provides:
  * - PostgreSQL with PostGIS extension for spatial queries
  * - RabbitMQ for AMQP integration testing

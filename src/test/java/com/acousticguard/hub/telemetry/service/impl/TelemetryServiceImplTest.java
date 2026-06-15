@@ -6,7 +6,6 @@ import com.acousticguard.hub.monitoring.MessageLoadMonitor;
 import com.acousticguard.hub.telemetry.dto.SensorNodeResponseDto;
 import com.acousticguard.hub.telemetry.dto.TelemetryEvent;
 import com.acousticguard.hub.telemetry.dto.TelemetryResponseDto;
-import com.acousticguard.hub.telemetry.service.TelemetryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -20,14 +19,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.time.Instant;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyFloat;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("TelemetryService Tests")
@@ -48,6 +52,88 @@ class TelemetryServiceImplTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(telemetryService, "heartbeatTimeoutSeconds", 60L);
+    }
+
+    @TestFactory
+    @DisplayName("Dynamic tests for dBFS to dB SPL conversion")
+    Stream<org.junit.jupiter.api.DynamicTest> dbFsToDbSplConversion() {
+        return Stream.of(
+                org.junit.jupiter.api.DynamicTest.dynamicTest(
+                        "dBFS -10 should convert to 90 dB SPL",
+                        () -> {
+                            reset(sensorPersistenceService);
+                            TelemetryEvent event = createTelemetryEvent("sensor-1", -10.0f, 48.5f, 35.5f);
+                            doNothing().when(sensorPersistenceService).persistNoiseDataWithThrottle(anyString(), anyFloat(), anyFloat(), anyFloat());
+
+                            telemetryService.updateNodeTelemetry(event);
+
+                            ArgumentCaptor<Float> displayDbCaptor = ArgumentCaptor.forClass(Float.class);
+                            verify(sensorPersistenceService).persistNoiseDataWithThrottle(
+                                    eq("sensor-1"), displayDbCaptor.capture(), eq(48.5f), eq(35.5f)
+                            );
+                            assertThat(displayDbCaptor.getValue()).isEqualTo(90.0f);
+                        }
+                ),
+                org.junit.jupiter.api.DynamicTest.dynamicTest(
+                        "dBFS -20 should convert to 80 dB SPL",
+                        () -> {
+                            reset(sensorPersistenceService);
+                            TelemetryEvent event = createTelemetryEvent("sensor-1", -20.0f, 48.5f, 35.5f);
+                            doNothing().when(sensorPersistenceService).persistNoiseDataWithThrottle(anyString(), anyFloat(), anyFloat(), anyFloat());
+
+                            telemetryService.updateNodeTelemetry(event);
+
+                            ArgumentCaptor<Float> displayDbCaptor = ArgumentCaptor.forClass(Float.class);
+                            verify(sensorPersistenceService).persistNoiseDataWithThrottle(
+                                    eq("sensor-1"), displayDbCaptor.capture(), eq(48.5f), eq(35.5f)
+                            );
+                            assertThat(displayDbCaptor.getValue()).isEqualTo(80.0f);
+                        }
+                ),
+                org.junit.jupiter.api.DynamicTest.dynamicTest(
+                        "dBFS -30 should convert to 70 dB SPL",
+                        () -> {
+                            reset(sensorPersistenceService);
+                            TelemetryEvent event = createTelemetryEvent("sensor-1", -30.0f, 48.5f, 35.5f);
+                            doNothing().when(sensorPersistenceService).persistNoiseDataWithThrottle(anyString(), anyFloat(), anyFloat(), anyFloat());
+
+                            telemetryService.updateNodeTelemetry(event);
+
+                            ArgumentCaptor<Float> displayDbCaptor = ArgumentCaptor.forClass(Float.class);
+                            verify(sensorPersistenceService).persistNoiseDataWithThrottle(
+                                    eq("sensor-1"), displayDbCaptor.capture(), eq(48.5f), eq(35.5f)
+                            );
+                            assertThat(displayDbCaptor.getValue()).isEqualTo(70.0f);
+                        }
+                ),
+                org.junit.jupiter.api.DynamicTest.dynamicTest(
+                        "dBFS -100 should clamp to 30 dB SPL",
+                        () -> {
+                            reset(sensorPersistenceService);
+                            TelemetryEvent event = createTelemetryEvent("sensor-1", -100.0f, 48.5f, 35.5f);
+                            doNothing().when(sensorPersistenceService).persistNoiseDataWithThrottle(anyString(), anyFloat(), anyFloat(), anyFloat());
+
+                            telemetryService.updateNodeTelemetry(event);
+
+                            ArgumentCaptor<Float> displayDbCaptor = ArgumentCaptor.forClass(Float.class);
+                            verify(sensorPersistenceService).persistNoiseDataWithThrottle(
+                                    eq("sensor-1"), displayDbCaptor.capture(), eq(48.5f), eq(35.5f)
+                            );
+                            assertThat(displayDbCaptor.getValue()).isEqualTo(30.0f);
+                        }
+                )
+        );
+    }
+
+    // Helper methods
+    private TelemetryEvent createTelemetryEvent(String sensorId, float avgDb, float latitude, float longitude) {
+        return new TelemetryEvent(
+                sensorId,
+                System.currentTimeMillis(),
+                latitude,
+                longitude,
+                avgDb
+        );
     }
 
     @Nested
@@ -351,87 +437,5 @@ class TelemetryServiceImplTest {
             // Assert - Exception should be caught and logged
             verify(simpMessagingTemplate).convertAndSend(anyString(), any(TelemetryResponseDto.class));
         }
-    }
-
-    @TestFactory
-    @DisplayName("Dynamic tests for dBFS to dB SPL conversion")
-    Stream<org.junit.jupiter.api.DynamicTest> dbFsToDbSplConversion() {
-        return Stream.of(
-                org.junit.jupiter.api.DynamicTest.dynamicTest(
-                        "dBFS -10 should convert to 90 dB SPL",
-                        () -> {
-                            reset(sensorPersistenceService);
-                            TelemetryEvent event = createTelemetryEvent("sensor-1", -10.0f, 48.5f, 35.5f);
-                            doNothing().when(sensorPersistenceService).persistNoiseDataWithThrottle(anyString(), anyFloat(), anyFloat(), anyFloat());
-                            
-                            telemetryService.updateNodeTelemetry(event);
-                            
-                            ArgumentCaptor<Float> displayDbCaptor = ArgumentCaptor.forClass(Float.class);
-                            verify(sensorPersistenceService).persistNoiseDataWithThrottle(
-                                    eq("sensor-1"), displayDbCaptor.capture(), eq(48.5f), eq(35.5f)
-                            );
-                            assertThat(displayDbCaptor.getValue()).isEqualTo(90.0f);
-                        }
-                ),
-                org.junit.jupiter.api.DynamicTest.dynamicTest(
-                        "dBFS -20 should convert to 80 dB SPL",
-                        () -> {
-                            reset(sensorPersistenceService);
-                            TelemetryEvent event = createTelemetryEvent("sensor-1", -20.0f, 48.5f, 35.5f);
-                            doNothing().when(sensorPersistenceService).persistNoiseDataWithThrottle(anyString(), anyFloat(), anyFloat(), anyFloat());
-                            
-                            telemetryService.updateNodeTelemetry(event);
-                            
-                            ArgumentCaptor<Float> displayDbCaptor = ArgumentCaptor.forClass(Float.class);
-                            verify(sensorPersistenceService).persistNoiseDataWithThrottle(
-                                    eq("sensor-1"), displayDbCaptor.capture(), eq(48.5f), eq(35.5f)
-                            );
-                            assertThat(displayDbCaptor.getValue()).isEqualTo(80.0f);
-                        }
-                ),
-                org.junit.jupiter.api.DynamicTest.dynamicTest(
-                        "dBFS -30 should convert to 70 dB SPL",
-                        () -> {
-                            reset(sensorPersistenceService);
-                            TelemetryEvent event = createTelemetryEvent("sensor-1", -30.0f, 48.5f, 35.5f);
-                            doNothing().when(sensorPersistenceService).persistNoiseDataWithThrottle(anyString(), anyFloat(), anyFloat(), anyFloat());
-                            
-                            telemetryService.updateNodeTelemetry(event);
-                            
-                            ArgumentCaptor<Float> displayDbCaptor = ArgumentCaptor.forClass(Float.class);
-                            verify(sensorPersistenceService).persistNoiseDataWithThrottle(
-                                    eq("sensor-1"), displayDbCaptor.capture(), eq(48.5f), eq(35.5f)
-                            );
-                            assertThat(displayDbCaptor.getValue()).isEqualTo(70.0f);
-                        }
-                ),
-                org.junit.jupiter.api.DynamicTest.dynamicTest(
-                        "dBFS -100 should clamp to 30 dB SPL",
-                        () -> {
-                            reset(sensorPersistenceService);
-                            TelemetryEvent event = createTelemetryEvent("sensor-1", -100.0f, 48.5f, 35.5f);
-                            doNothing().when(sensorPersistenceService).persistNoiseDataWithThrottle(anyString(), anyFloat(), anyFloat(), anyFloat());
-                            
-                            telemetryService.updateNodeTelemetry(event);
-                            
-                            ArgumentCaptor<Float> displayDbCaptor = ArgumentCaptor.forClass(Float.class);
-                            verify(sensorPersistenceService).persistNoiseDataWithThrottle(
-                                    eq("sensor-1"), displayDbCaptor.capture(), eq(48.5f), eq(35.5f)
-                            );
-                            assertThat(displayDbCaptor.getValue()).isEqualTo(30.0f);
-                        }
-                )
-        );
-    }
-
-    // Helper methods
-    private TelemetryEvent createTelemetryEvent(String sensorId, float avgDb, float latitude, float longitude) {
-        return new TelemetryEvent(
-                sensorId,
-                System.currentTimeMillis(),
-                latitude,
-                longitude,
-                avgDb
-        );
     }
 }

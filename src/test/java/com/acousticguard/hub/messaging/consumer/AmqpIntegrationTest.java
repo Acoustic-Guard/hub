@@ -3,9 +3,9 @@ package com.acousticguard.hub.messaging.consumer;
 import com.acousticguard.hub.BaseIntegrationTest;
 import com.acousticguard.hub.alert.model.Alert;
 import com.acousticguard.hub.alert.repository.AlertRepository;
+import com.acousticguard.hub.sensor.dto.AudioFrame;
 import com.acousticguard.hub.sensor.model.Sensor;
 import com.acousticguard.hub.sensor.repository.SensorRepository;
-import com.acousticguard.hub.sensor.dto.AudioFrame;
 import com.acousticguard.hub.telemetry.dto.TelemetryEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,9 +19,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,7 +31,7 @@ import static org.awaitility.Awaitility.await;
  * - Send raw JSON payload to queue
  * - Verify database state updates
  * - Verify WebSocket events are published (mocked)
- * 
+ * <p>
  * NOTE: These tests require Docker Desktop to be running with proper daemon configuration.
  * Testcontainers needs to be able to connect to the Docker daemon to pull and run containers.
  * If you see ContainerFetchException, ensure Docker Desktop is running and accessible.
@@ -58,6 +56,39 @@ class AmqpIntegrationTest extends BaseIntegrationTest {
     void setUp() {
         alertRepository.deleteAll();
         sensorRepository.deleteAll();
+    }
+
+    // Helper methods
+    private AudioFrame createAudioFrame(String sensorId, float latitude, float longitude, float confidence) {
+        return new AudioFrame(
+                sensorId,
+                System.currentTimeMillis(),
+                latitude,
+                longitude,
+                List.of(1.0f, 2.0f, 3.0f),
+                16000.0f,
+                -10.0f,
+                null,
+                null
+        );
+    }
+
+    private TelemetryEvent createTelemetryEvent(String sensorId, float avgDb, float latitude, float longitude) {
+        return new TelemetryEvent(
+                sensorId,
+                System.currentTimeMillis(),
+                latitude,
+                longitude,
+                avgDb
+        );
+    }
+
+    private String serializeToJson(Object object) {
+        try {
+            return objectMapper.writeValueAsString(object);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize object to JSON", e);
+        }
     }
 
     @Nested
@@ -233,39 +264,6 @@ class AmqpIntegrationTest extends BaseIntegrationTest {
                 // System should still be functional
                 assertThat(true).isTrue();
             });
-        }
-    }
-
-    // Helper methods
-    private AudioFrame createAudioFrame(String sensorId, float latitude, float longitude, float confidence) {
-        return new AudioFrame(
-                sensorId,
-                System.currentTimeMillis(),
-                latitude,
-                longitude,
-                List.of(1.0f, 2.0f, 3.0f),
-                16000.0f,
-                -10.0f,
-                null,
-                null
-        );
-    }
-
-    private TelemetryEvent createTelemetryEvent(String sensorId, float avgDb, float latitude, float longitude) {
-        return new TelemetryEvent(
-                sensorId,
-                System.currentTimeMillis(),
-                latitude,
-                longitude,
-                avgDb
-        );
-    }
-
-    private String serializeToJson(Object object) {
-        try {
-            return objectMapper.writeValueAsString(object);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to serialize object to JSON", e);
         }
     }
 }

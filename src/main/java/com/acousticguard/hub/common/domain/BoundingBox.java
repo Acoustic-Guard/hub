@@ -1,7 +1,5 @@
 package com.acousticguard.hub.common.domain;
 
-import java.util.Objects;
-
 /**
  * Domain value object representing a geographic bounding box.
  * Format: minLng, minLat, maxLng, maxLat
