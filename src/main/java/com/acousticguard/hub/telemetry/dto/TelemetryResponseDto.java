@@ -17,6 +17,7 @@ public record TelemetryResponseDto(
         Integer offlineNodes,
         Integer warningNodes,
         Float uptimePercent,
-        Instant lastUpdatedAt
+        Instant lastUpdatedAt,
+        Integer eventsPerMinute
 ) {
 }

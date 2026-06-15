@@ -1,5 +1,6 @@
 package com.acousticguard.hub.messaging.consumer;
 
+import com.acousticguard.hub.monitoring.MessageLoadMonitor;
 import com.acousticguard.hub.telemetry.dto.TelemetryEvent;
 import com.acousticguard.hub.telemetry.service.TelemetryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,6 +21,7 @@ public class TelemetryConsumer {
 
     private final TelemetryService telemetryService;
     private final ObjectMapper objectMapper;
+    private final MessageLoadMonitor messageLoadMonitor;
 
     /**
      * Processes telemetry messages from the RabbitMQ q.telemetry queue.
@@ -30,6 +32,8 @@ public class TelemetryConsumer {
     @RabbitListener(queues = "q.telemetry")
     public void receiveTelemetry(Message message) {
         try {
+            messageLoadMonitor.incrementMessageCount();
+            
             TelemetryEvent event = objectMapper.readValue(message.getBody(), TelemetryEvent.class);
 
             // Update telemetry for noise map

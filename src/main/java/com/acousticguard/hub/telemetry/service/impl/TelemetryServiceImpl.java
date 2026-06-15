@@ -2,6 +2,7 @@ package com.acousticguard.hub.telemetry.service.impl;
 
 import com.acousticguard.hub.common.enums.SensorStatus;
 import com.acousticguard.hub.common.enums.SystemStatus;
+import com.acousticguard.hub.monitoring.MessageLoadMonitor;
 import com.acousticguard.hub.telemetry.dto.TelemetryEvent;
 import com.acousticguard.hub.telemetry.dto.TelemetryResponseDto;
 import com.acousticguard.hub.telemetry.service.TelemetryService;
@@ -52,7 +53,10 @@ public class TelemetryServiceImpl implements TelemetryService {
     // Concurrent map to safely store and update node states from multiple async RabbitMQ listener threads
     private final Map<String, NodeState> nodeStates = new ConcurrentHashMap<>();
 
-    @Value("${acoustic.sensor.heartbeat-timeout-seconds:10}")
+    // Message load monitor for tracking events per minute
+    private final MessageLoadMonitor messageLoadMonitor;
+
+    @Value("${acoustic.sensor.heartbeat-timeout-seconds:60}")
     private long heartbeatTimeoutSeconds;
 
     /**
@@ -129,7 +133,8 @@ public class TelemetryServiceImpl implements TelemetryService {
                 0, // Offline nodes count is inherently 0 because dead nodes are evicted from the map
                 0,
                 99.9f,
-                Instant.now()
+                Instant.now(),
+                messageLoadMonitor.getLastMinuteEventCount()
         );
     }
 

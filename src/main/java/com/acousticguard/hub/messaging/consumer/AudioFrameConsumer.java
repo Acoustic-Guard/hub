@@ -1,5 +1,6 @@
 package com.acousticguard.hub.messaging.consumer;
 
+import com.acousticguard.hub.monitoring.MessageLoadMonitor;
 import com.acousticguard.hub.sensor.dto.AudioFrame;
 import com.acousticguard.hub.sensor.service.AudioFrameService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,6 +22,7 @@ public class AudioFrameConsumer {
 
     private final AudioFrameService audioFrameService;
     private final ObjectMapper objectMapper;
+    private final MessageLoadMonitor messageLoadMonitor;
 
     /**
      * Processes audio frame messages from the RabbitMQ q.frames queue.
@@ -31,6 +33,8 @@ public class AudioFrameConsumer {
     @RabbitListener(queues = "q.frames")
     public void receiveFrame(Message message) {
         try {
+            messageLoadMonitor.incrementMessageCount();
+            
             AudioFrame frame = objectMapper.readValue(message.getBody(), AudioFrame.class);
 
             // Process the frame for threat detection
