@@ -37,7 +37,17 @@ The Acoustic Guard Hub is built on an event-driven architecture designed for hig
 
 ## Local Setup & Running
 
-### 1. Start Infrastructure Services
+### 1. Initialize Proto Submodule
+
+The project uses a Git submodule for protobuf files. After cloning the repository, initialize the submodule:
+
+```bash
+git submodule update --init --recursive
+```
+
+This will download the proto files from `https://github.com/Acoustic-Guard/proto.git` into the `proto/` directory.
+
+### 2. Start Infrastructure Services
 
 Start the required Docker containers for PostgreSQL, PostGIS, and RabbitMQ:
 

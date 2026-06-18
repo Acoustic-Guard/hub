@@ -18,7 +18,7 @@ import java.util.List;
 /**
  * Implementation of SensorHealthMonitorService.
  * <p>
- * Handles heartbeat tracking and scheduled offline sensor checking. This implementation
+ * Handles heart8 bn-onbbnnnnnnnnnnnnnnnnnnnnnnnnnnnniono89beat tracking and scheduled offline sensor checking. This implementation
  * runs a background job every 5 seconds to scan all registered sensors and detect
  * connectivity issues. Sensors that have not transmitted telemetry within the
  * configured timeout period are marked as OFFLINE in the database, and status change
@@ -66,7 +66,7 @@ public class SensorHealthMonitorServiceImpl implements SensorHealthMonitorServic
      * </p>
      *
      * @return a list of sensors that were newly marked as offline during this check,
-     * or an empty list if no sensors transitioned to offline
+     *         or an empty list if no sensors transitioned to offline
      */
     @Override
     @Scheduled(fixedRate = 5000)
@@ -83,7 +83,7 @@ public class SensorHealthMonitorServiceImpl implements SensorHealthMonitorServic
                 sensorRepository.save(sensor);
                 offlineSensors.add(sensor);
                 log.warn("Sensor {} marked as offline", sensor.getId());
-
+                
                 // Get DTO and update with latency (null for offline)
                 var dto = sensorMapper.toDto(sensor);
                 eventPublisherPort.publishSensorStatus(dto);
@@ -91,23 +91,23 @@ public class SensorHealthMonitorServiceImpl implements SensorHealthMonitorServic
                 sensor.setStatus(SensorStatus.ONLINE);
                 sensorRepository.save(sensor);
                 log.info("Sensor {} marked as online", sensor.getId());
-
+                
                 // Get DTO and update with latency from telemetry
                 var dto = sensorMapper.toDto(sensor);
                 Long latency = telemetryService.getSensorLatency(sensor.getId());
                 if (dto.latencyMs() == null && latency != null) {
                     // Create new DTO with latency (since records are immutable)
                     dto = new com.acousticguard.hub.telemetry.dto.SensorNodeResponseDto(
-                            dto.id(),
-                            dto.location(),
-                            dto.status(),
-                            latency.intValue(),
-                            dto.uptimePercent(),
-                            dto.lastHeartbeat(),
-                            dto.latitude(),
-                            dto.longitude(),
-                            dto.firmwareVersion(),
-                            dto.metadata()
+                        dto.id(),
+                        dto.location(),
+                        dto.status(),
+                        latency.intValue(),
+                        dto.uptimePercent(),
+                        dto.lastHeartbeat(),
+                        dto.latitude(),
+                        dto.longitude(),
+                        dto.firmwareVersion(),
+                        dto.metadata()
                     );
                 }
                 eventPublisherPort.publishSensorStatus(dto);
